@@ -37,24 +37,29 @@ struct gb_tile
 	u8 raw_data[0x40];
 };
 
-//TODO: Move these to the GPU class
-void horizontal_flip(u16 width, u16 height, u32 pixel_data[]);
-
-void vertical_flip(u16 width, u16 height, u32 pixel_data[]);
-
-void complete_flip(u16 width, u16 height, u32 pixel_data[]);
-
 class GPU
 {
 	public:
+	
+	MMU* mem_link;
+
+	//Screen Data
+	SDL_Surface* gpu_screen;
+	SDL_Surface* src_screen;
+
+	//Core Functions
+	GPU();
+	~GPU();
+
+	void step(int cpu_clock);
+
+	private:
 
 	u8 gpu_mode;
 	int gpu_clock;
 
 	int frame_start_time;
 	int frame_current_time;
-	
-	MMU* mem_link;
 
 	//Tile set data
 	gb_tile tile_set_1[0x100];
@@ -70,23 +75,16 @@ class GPU
 
 	gb_sprite sprites[40];
 
-	//Screen Data
-	SDL_Surface* gpu_screen;
-	SDL_Surface* src_screen;
-
-	//Core Functions
-	GPU();
-	~GPU();
-
 	void render_screen();
-	void step(int cpu_clock);
-
 	void scanline_compare();
-
 	void update_bg_tile();
 
 	void generate_scanline();
 	void generate_sprites();
+
+	void horizontal_flip(u16 width, u16 height, u32 pixel_data[]);
+	void vertical_flip(u16 width, u16 height, u32 pixel_data[]);
+	u8 signed_tile(u8 tile_number);
 };
 
 #endif // GB_GPU

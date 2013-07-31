@@ -11,55 +11,6 @@
 
 #include "gpu.h"
 
-/****** Flip pixel data horizontally - For sprites and useless screen effects ******/
-void horizontal_flip(u16 width, u16 height, u32 pixel_data[])
-{
-	u32 target, origin = 0;
-
-	for(u16 x = 0; x < height; x++)
-	{
-		for(u16 y = 0; y < width/2; y++)
-		{
-			target = (((x *width) + width) - y) - 1;
-			origin = (x * width) + y;
-			std::swap(pixel_data[target], pixel_data[origin]);
-		}
-	}
-}
-
-/****** Flip pixel data vertically - For sprites and useless screen effects ******/
-void vertical_flip(u16 width, u16 height, u32 pixel_data[])
-{
-	u32 target, origin = 0;
-
-	for(u16 x = 0; x < height/2; x++)
-	{
-		for(u16 y = 0; y < width; y++)
-		{
-			target = ((height - 1 - x) * width) + y;
-			origin = (x * width) + y;
-			std::swap(pixel_data[target], pixel_data[origin]);
-		}
-	}
-}
-
-/****** Converts signed tile numbers to regular tile numbers (0-255) ******/
-u8 signed_tile(u8 tile_number) 
-{
-	if(tile_number <= 127)
-	{
-		tile_number += 128;
-		return tile_number;
-	}
-
-	else 
-	{ 
-		tile_number -= 128;
-		return tile_number;
-	}
-}
-
-
 /****** GPU Constructor ******/
 GPU::GPU() 
 {
@@ -86,6 +37,54 @@ GPU::GPU()
 /****** GPU Deconstructor ******/
 GPU::~GPU() { }
 
+/****** Flip pixel data horizontally - For sprites only ******/
+void GPU::horizontal_flip(u16 width, u16 height, u32 pixel_data[])
+{
+	u32 target, origin = 0;
+
+	for(u16 x = 0; x < height; x++)
+	{
+		for(u16 y = 0; y < width/2; y++)
+		{
+			target = (((x *width) + width) - y) - 1;
+			origin = (x * width) + y;
+			std::swap(pixel_data[target], pixel_data[origin]);
+		}
+	}
+}
+
+/****** Flip pixel data vertically - For sprites only ******/
+void GPU::vertical_flip(u16 width, u16 height, u32 pixel_data[])
+{
+	u32 target, origin = 0;
+
+	for(u16 x = 0; x < height/2; x++)
+	{
+		for(u16 y = 0; y < width; y++)
+		{
+			target = ((height - 1 - x) * width) + y;
+			origin = (x * width) + y;
+			std::swap(pixel_data[target], pixel_data[origin]);
+		}
+	}
+}
+
+/****** Converts signed tile numbers to regular tile numbers (0-255) ******/
+u8 GPU::signed_tile(u8 tile_number) 
+{
+	if(tile_number <= 127)
+	{
+		tile_number += 128;
+		return tile_number;
+	}
+
+	else 
+	{ 
+		tile_number -= 128;
+		return tile_number;
+	}
+}
+
 /****** Compares LY and LYC - Generates STAT Interrupt ******/
 void GPU::scanline_compare()
 {
@@ -108,8 +107,6 @@ void GPU::update_bg_tile()
 	u8 tile_number = 0;
 
 	u16 pixel_counter = 0;
-
-	bool up_to_date = false;
 
 	//Update Tile Set #1
 	if((mem_link->gpu_update_addr >= 0x8000) && (mem_link->gpu_update_addr <= 0x8FFF))
@@ -533,7 +530,7 @@ void GPU::step(int cpu_clock)
 		gpu_clock -= 456;
 		generate_scanline();
 		scanline_compare();
-		mem_link->memory_map[REG_LY]++;
+		mem_link->memory_map[REG_LY]++; //This is a problem. See Mega Man STAT Interrupt (likely others).
 
 		if(mem_link->memory_map[REG_LY] >= 154) { mem_link->memory_map[REG_LY] -= 154; }
 
