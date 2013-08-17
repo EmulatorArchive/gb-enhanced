@@ -498,7 +498,7 @@ void GPU::render_screen()
 	//Scale the source image...
 	if(config::use_scaling) 
 	{ 
-		SDL_Surface* temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 512, 32, 0, 0, 0, 0);
+		SDL_Surface* temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (256 * config::scaling_factor), 32, 0, 0, 0, 0);
 		apply_scaling(src_screen, temp_screen);
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
 		SDL_FreeSurface(temp_screen);

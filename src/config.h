@@ -25,6 +25,7 @@ namespace config
 	extern std::vector <std::string> cli_args;
 	extern bool use_scaling;
 	extern int scaling_mode;
+	extern int scaling_factor;
 }
 
 #endif // GB_CONFIG

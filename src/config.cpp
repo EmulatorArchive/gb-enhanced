@@ -18,6 +18,7 @@ namespace config
 	std::vector <std::string> cli_args;
 	bool use_scaling = false;
 	int scaling_mode = 0;
+	int scaling_factor = 1;
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -48,6 +49,7 @@ bool parse_cli_args()
 			{
 				config::scaling_mode = 1;
 				config::use_scaling = true;
+				config::scaling_factor = 2;
 				std::cout<<"Scaling Filter : On \n";
 				std::cout<<"Scaling Mode : Nearest Neighbor 1x\n";
 			}
