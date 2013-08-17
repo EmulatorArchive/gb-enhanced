@@ -16,6 +16,8 @@ namespace config
 	bool use_opengl = false;
 	std::string rom_file = "";
 	std::vector <std::string> cli_args;
+	bool use_scaling = false;
+	int scaling_mode = 0;
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -35,8 +37,20 @@ bool parse_cli_args()
 		
 		for(int x = 1; x < config::cli_args.size(); x++)
 		{
+			//Use OpenGL hardware acceleration
 			if(config::cli_args[x] == "--opengl") { config::use_opengl = true; }
+
+			//Load and use GB BIOS
 			else if(config::cli_args[x] == "--bios") { config::use_bios = true; }
+			
+			//Set scaling filter #1 - Nearest Neighbor 2x
+			else if((config::cli_args[x] == "--f1") && (config::use_scaling == false))
+			{
+				config::scaling_mode = 1;
+				config::use_scaling = true;
+				std::cout<<"Scaling Filter : On \n";
+				std::cout<<"Scaling Mode : Nearest Neighbor 1x\n";
+			}
 			
 			else 
 			{

@@ -10,6 +10,7 @@
 // Responsible for blitting pixel data and limiting frame rate
 
 #include "gpu.h"
+#include "filter.h"
 
 /****** GPU Constructor ******/
 GPU::GPU() 
@@ -20,6 +21,7 @@ GPU::GPU()
 	frame_current_time = 0;
 	gpu_screen = NULL;
 	mem_link = NULL;
+	
 	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
 
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
@@ -493,8 +495,18 @@ void GPU::render_screen()
 	//Unlock source surface
 	if(SDL_MUSTLOCK(src_screen)){ SDL_UnlockSurface(src_screen); }
 
-	//Blit to screen
-	SDL_BlitSurface(src_screen, 0, gpu_screen, 0);
+	//Scale the source image...
+	if(config::use_scaling) 
+	{ 
+		SDL_Surface* temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 512, 32, 0, 0, 0, 0);
+		apply_scaling(src_screen, temp_screen);
+		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
+		SDL_FreeSurface(temp_screen);
+	}
+	
+	//Or just blit to unscaled image to screen
+	else { SDL_BlitSurface(src_screen, 0, gpu_screen, 0); }
+
 	if(SDL_Flip(gpu_screen) == -1) { std::cout<<"Could not blit? \n"; }
 
 	//Limit FPS to 60

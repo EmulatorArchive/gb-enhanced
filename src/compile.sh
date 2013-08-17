@@ -26,6 +26,13 @@ else
 	exit
 fi
 
+if g++ -c filter.cpp -lSDL; then
+	echo -e "Compiling Filters...			\E[32m[DONE]\E[37m"
+else
+	echo -e "Compiling Filters...			\E[31m[ERROR]\E[37m"
+	exit
+fi
+
 if g++ -c gpu.cpp -lSDL; then
 	echo -e "Compiling GB GPU...			\E[32m[DONE]\E[37m"
 else
@@ -40,7 +47,7 @@ else
 	exit
 fi
 
-if g++ -o gbe config.o mmu.o z80.o gamepad.o gpu.o source.o -lSDL; then
+if g++ -o gbe config.o mmu.o z80.o gamepad.o filter.o gpu.o source.o -lSDL; then
 	echo -e "Linking Project...			\E[32m[DONE]\E[37m"
 else
 	echo -e "Linking Project...			\E[31m[ERROR]\E[37m"

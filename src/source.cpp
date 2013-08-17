@@ -55,7 +55,9 @@ int main(int argc, char* args[])
 		return 1;
 	}
 
-	gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE);
+	//Initialize the screen - account for scaling
+	if(!config::use_scaling) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); }
+	else { gb_gpu.gpu_screen = SDL_SetVideoMode(320, 288, 32, SDL_SWSURFACE); }
 
 	//Read BIOS
 	if((z80.mem.in_bios) && (!z80.mem.read_bios("bios.bin"))) { return 1; }

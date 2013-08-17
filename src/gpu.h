@@ -22,6 +22,7 @@
 
 #include "common.h"
 #include "mmu.h"
+#include "config.h"
 
 struct gb_sprite
 {
