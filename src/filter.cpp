@@ -10,6 +10,8 @@
 // Current filters: Nearest Neighbor 2x-4x
 
 #include "filter.h"
+#include "common.h"
+#include "config.h"
 
 /****** Selects the appropiate scaling method ******/
 void apply_scaling(SDL_Surface* input_image, SDL_Surface* output_image)

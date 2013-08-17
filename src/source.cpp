@@ -17,6 +17,7 @@
 #include "mmu.h"
 #include "z80.h"
 #include "gpu.h"
+#include "hotkeys.h"
 
 int main(int argc, char* args[]) 
 {
@@ -72,8 +73,11 @@ int main(int argc, char* args[])
 		//Handle SDL Events
 		if((z80.mem.memory_map[REG_LY] == 144) && SDL_PollEvent(&event))
 		{
+			//X out of a window
 			if(event.type == SDL_QUIT) { z80.running = false; SDL_Quit(); }
-			else if((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP)) { z80.mem.pad.handle_input(event); }
+	
+			//Handle hotkeys or Game Pad input
+			else { process_keys(z80, gb_gpu, event); }
 		}
 
 		z80.cycles = 0;
