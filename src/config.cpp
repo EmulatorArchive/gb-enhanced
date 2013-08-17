@@ -51,7 +51,27 @@ bool parse_cli_args()
 				config::use_scaling = true;
 				config::scaling_factor = 2;
 				std::cout<<"Scaling Filter : On \n";
-				std::cout<<"Scaling Mode : Nearest Neighbor 1x\n";
+				std::cout<<"Scaling Mode : Nearest Neighbor 2x\n";
+			}
+
+			//Set scaling filter #2 - Nearest Neighbor 3x
+			else if((config::cli_args[x] == "--f2") && (config::use_scaling == false))
+			{
+				config::scaling_mode = 2;
+				config::use_scaling = true;
+				config::scaling_factor = 3;
+				std::cout<<"Scaling Filter : On \n";
+				std::cout<<"Scaling Mode : Nearest Neighbor 3x\n";
+			}
+
+			//Set scaling filter #2 - Nearest Neighbor 4x
+			else if((config::cli_args[x] == "--f3") && (config::use_scaling == false))
+			{
+				config::scaling_mode = 3;
+				config::use_scaling = true;
+				config::scaling_factor = 4;
+				std::cout<<"Scaling Filter : On \n";
+				std::cout<<"Scaling Mode : Nearest Neighbor 4x\n";
 			}
 			
 			else 

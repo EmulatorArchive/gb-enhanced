@@ -19,6 +19,8 @@
 
 void apply_scaling(SDL_Surface* input_image, SDL_Surface* output_image);
 void scale_nearest_neighbor_2x(SDL_Surface* input_image, SDL_Surface* output_image);
+void scale_nearest_neighbor_3x(SDL_Surface* input_image, SDL_Surface* output_image);
+void scale_nearest_neighbor_4x(SDL_Surface* input_image, SDL_Surface* output_image);
 
 #endif // GB_FILTER
 		
