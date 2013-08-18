@@ -533,7 +533,38 @@ u8 CPU::srl(u8 reg_one)
 /****** Decimal adjust accumulator ******/
 u8 CPU::daa(u8 reg_one)
 {
+	if(!(reg.f & 0x40))
+	{
+		if((reg.f & 0x10) || (reg_one > 0x99))
+		{
+			reg_one += 0x60;
+			reg.f |= 0x10;
+		}
 
+		if((reg.f & 0x20) || ((reg_one & 0xF) > 0x09))
+		{
+			reg_one += 0x06;
+			reg.f &= ~0x20;
+		}
+	}
+
+	else if((reg.f & 0x10) && (reg.f & 0x20))
+	{
+		reg_one += 0x9A;
+		reg.f &= ~0x20;
+	}
+
+	else if(reg.f & 0x10) { reg_one += 0xA0; }
+
+	else if(reg.f & 0x20)
+	{
+		reg_one += 0xFA;
+		reg.f &= ~0x20;
+	}
+
+	if(reg_one == 0) { reg.f |= 0x80; }
+
+	return reg_one;		
 }
 
 /****** Execute 8-bit opcodes ******/
@@ -783,8 +814,9 @@ void CPU::exec_op(u8 opcode)
 			cycles += 8;
 			break;
 
-		//DAA - Unimplemented atm
+		//DAA
 		case 0x27 :
+			reg.a = daa(reg.a);
 			cycles += 4;
 			break;
 
