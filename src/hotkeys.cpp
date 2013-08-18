@@ -10,6 +10,8 @@
 // Handles things like save states, screenshots, pausing, etc
 
 #include "hotkeys.h"
+#include <ctime>
+#include <sstream>
 
 /****** Process key input - Do hotkey action or send input to Game Pad ******/
 void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
@@ -21,7 +23,28 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 		SDL_Quit();
 	}
 
+	//Screenshot on F9
+	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F9)) { take_screenshot(gb_gpu); }
+
 	//Send input to Game Pad if not a hotkey
 	else if((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP)) { z80.mem.pad.handle_input(event); }
 }
 
+/****** Takes screenshot - Accounts for image scaling ******/
+void take_screenshot(GPU& gb_gpu)
+{
+	std::stringstream save_stream;
+	std::string save_name = "";
+
+	//Prefix SDL Ticks to screenshot name
+	save_stream << SDL_GetTicks();
+	save_name += save_stream.str();
+	save_stream.str(std::string());
+
+	//Append random number to screenshot name
+	srand(SDL_GetTicks());
+	save_stream << rand() % 1024 << rand() % 1024 << rand() % 1024;
+	save_name += save_stream.str();
+	
+	SDL_SaveBMP(gb_gpu.gpu_screen, save_name.c_str());
+}
