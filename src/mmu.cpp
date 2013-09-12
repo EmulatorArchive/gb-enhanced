@@ -73,7 +73,7 @@ s8 MMU::read_signed_byte(u16 address)
 	}
 
 	//Read normally
-	u8 temp = memory_map[address];
+	u8 temp = read_byte(address);
 	s8 s_temp = (s8)temp;
 	return s_temp;
 }
@@ -89,18 +89,9 @@ u16 MMU::read_word(u16 address)
 		return val;
 	}
 
-	//Read using ROM Banking
-	if((address >= 0x4000) && (address <= 0x7FFF) && (memory_map[ROM_MBC] > 0) && (rom_bank >= 2))
-	{
-
-		u16 val = memory_bank[rom_bank-2][(address+1)-0x4000];
-		val = (val << 8) | memory_bank[rom_bank-2][address-0x4000];
-		return val;
-	}
-
 	//Read normally
-	u16 val = memory_map[address+1];
-	val = (val << 8) | memory_map[address];
+	u16 val = read_byte(address+1);
+	val = (val << 8) | read_byte(address);
 	return val;
 }
 
@@ -264,8 +255,8 @@ bool MMU::read_file(std::string filename)
 /****** Write word to memory ******/
 void MMU::write_word(u16 address, u16 value)
 {
-	memory_map[address] = value & 0xFF;
-	memory_map[address+1] = value >> 8;
+	write_byte(address, (value & 0xFF));
+	write_byte((address+1), (value >> 8));
 }
 
 /****** Read GB BIOS ******/
