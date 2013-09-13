@@ -29,9 +29,10 @@ MMU::MMU()
 	cart_rom_size = 0;
 	cart_ram_size = 0;
 
-	current_bank = 0;
-	rom_bank = 0;
-	bank_set = 0;
+	rom_bank = 1;
+	ram_bank = 0;
+	bank_bits = 0;
+	bank_mode = 0;
 }
 
 /****** MMU Deconstructor ******/
@@ -48,9 +49,10 @@ u8 MMU::read_byte(u16 address)
 	}
 
 	//Read using ROM Banking
-	if((address >= 0x4000) && (address <= 0x7FFF) && (memory_map[ROM_MBC] > 0) && (rom_bank >= 2))
+	if((address >= 0x4000) && (address <= 0x7FFF) && (memory_map[ROM_MBC] > 0))
 	{
-		return memory_bank[rom_bank-2][address-0x4000];
+		if((bank_mode == 0) && ((bank_bits << 5 | rom_bank) >= 2)) { return memory_bank[((bank_bits << 5) | rom_bank) - 2][address - 0x4000]; }
+		else if((bank_mode == 1) && (rom_bank >= 2)) { return memory_bank[rom_bank - 2][address - 0x4000]; }
 	}
 
 	//Read from P1
@@ -98,11 +100,18 @@ u16 MMU::read_word(u16 address)
 /****** Write Byte To Memory ******/
 void MMU::write_byte(u16 address, u8 value) 
 {
-	//MBC register - Select ROM bank
-	if((address >= 0x2000) && (address <= 0x3FFF)) { rom_bank = (value & 0x1F); }
+	//MBC register - Select ROM bank - Bits 0 to 4
+	if((address >= 0x2000) && (address <= 0x3FFF)) 
+	{ 
+		rom_bank = (value & 0x1F);
+		if(rom_bank & 0x1F == 0) { rom_bank += 1; }
+	}
 
-	//MBC register - Select ROM bank Set
-	if((address >= 0x4000) && (address <= 0x5FFF)) { bank_set = (value >> 6); }
+	//MBC register - Select ROM bank bits 5 to 6 or Set or RAM bank
+	if((address >= 0x4000) && (address <= 0x5FFF)) { bank_bits = value & 0x3; }
+
+	//MBC register - ROM/RAM Select
+	if((address >= 0x6000) && (address <= 0x7FFF)) { bank_mode = value & 0x1; }
 
 	//P1 - Joypad register
 	if(address == REG_P1) { pad.column_id = (value & 0x30); memory_map[REG_P1] = pad.read(); }

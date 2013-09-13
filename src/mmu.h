@@ -29,11 +29,12 @@ class MMU
 	u8 bios [0x100];
 
 	//Memory Banks
-	u8 memory_bank[0x7D][0x4000];
+	u8 memory_bank[0x7F][0x4000];
 
-	u8 current_bank;
 	u8 rom_bank;
-	u8 bank_set;
+	u8 ram_bank;
+	u8 bank_bits;
+	u8 bank_mode;
 
 	GamePad pad;
 
