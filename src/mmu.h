@@ -29,12 +29,14 @@ class MMU
 	u8 bios [0x100];
 
 	//Memory Banks
-	u8 memory_bank[0x7F][0x4000];
+	u8 read_only_bank[0x7F][0x4000];
+	u8 random_access_bank[0x4][0x2000];
 
 	u8 rom_bank;
 	u8 ram_bank;
 	u8 bank_bits;
 	u8 bank_mode;
+	bool ram_banking_enabled;
 
 	GamePad pad;
 
@@ -54,6 +56,8 @@ class MMU
 	bool read_file(std::string filename);
 	bool read_bios(std::string filename);
 
+	void save_sram();
+
 	//Variables read by the GPU
 	//TODO: Extern these into a seperate namespace, this is messy 
 	bool gpu_update_bg_tile;
@@ -65,6 +69,8 @@ class MMU
 	u8 cart_mbc;
 	u32 cart_rom_size;
 	u32 cart_ram_size;
+	
+	std::string save_ram_file;
 };
 
 #endif // GB_MMU

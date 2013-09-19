@@ -139,6 +139,9 @@ int main(int argc, char* args[])
 		}
 	}
 
+	//Save battery-backed RAM 
+	z80.mem.save_sram();
+
 	std::cout<<"Exiting... \n";
 	return 0;
 }
