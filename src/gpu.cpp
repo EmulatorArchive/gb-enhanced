@@ -487,10 +487,16 @@ void GPU::render_screen()
 	if(SDL_MUSTLOCK(src_screen)){ SDL_LockSurface(src_screen); }
 	u32* out_pixel_data = (u32*)src_screen->pixels;
 
-	//Draw background to framebuffer
-	if(mem_link->memory_map[REG_LCDC] & 0x1) 
+	//LCD On - Draw background to framebuffer
+	if(mem_link->memory_map[REG_LCDC] & 0x80) 
 	{
 		for(int a = 0; a < 0x10000; a++) { out_pixel_data[a] = final_pixel_data[a]; }
+	}
+
+	//LCD Off - Draw white pixels to framebuffer
+	else
+	{
+		for(int a = 0; a < 0x10000; a++) { out_pixel_data[a] = 0xFFFFFFFF; }
 	}
 
 	//Unlock source surface
