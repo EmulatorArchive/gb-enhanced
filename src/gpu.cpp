@@ -21,6 +21,7 @@ GPU::GPU()
 	frame_current_time = 0;
 	gpu_screen = NULL;
 	mem_link = NULL;
+	lcd_enabled = false;
 	
 	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
 
@@ -520,6 +521,9 @@ void GPU::step(int cpu_clock)
 {
 	if(mem_link->gpu_reset_ticks) { gpu_clock = 0; mem_link->gpu_reset_ticks = false; }
 
+	//Enable LCD
+	if(mem_link->memory_map[REG_LCDC] & 0x80) { lcd_enabled = true; }
+
 	//Update background tile
 	if(mem_link->gpu_update_bg_tile)
 	{ 
@@ -534,43 +538,55 @@ void GPU::step(int cpu_clock)
 		mem_link->gpu_update_sprite = false;
 	}
 
-	gpu_clock += cpu_clock;
-
-	//VBlank - Mode 1
-	if(gpu_clock >= 456)
+	//Perform LCD operations when only LCD enabled
+	if(lcd_enabled)
 	{
-		gpu_clock -= 456;
-		generate_scanline();
-		scanline_compare();
-		mem_link->memory_map[REG_LY]++; //This is a problem. See Mega Man STAT Interrupt (likely others).
+		gpu_clock += cpu_clock;
 
-		if(mem_link->memory_map[REG_LY] >= 154) { mem_link->memory_map[REG_LY] -= 154; }
-
-		//VBlank
-		if(mem_link->memory_map[REG_LY] == 144)
+		//VBlank - Mode 1
+		if(gpu_clock >= 456)
 		{
-			gpu_mode = 1;
-			render_screen();
-			frame_start_time = SDL_GetTicks();
-			mem_link->memory_map[REG_IF] |= 1;
+			gpu_clock -= 456;
+			generate_scanline();
+			scanline_compare();
+			mem_link->memory_map[REG_LY]++; //This is a problem. See Mega Man STAT Interrupt (likely others).
+
+			if(mem_link->memory_map[REG_LY] >= 154) { mem_link->memory_map[REG_LY] -= 154; }
+
+			//VBlank
+			if(mem_link->memory_map[REG_LY] == 144)
+			{
+				gpu_mode = 1;
+				render_screen();
+				frame_start_time = SDL_GetTicks();
+				mem_link->memory_map[REG_IF] |= 1;
+
+				//Disable LCD - Must be done during VBlank only
+				if(!(mem_link->memory_map[REG_LCDC] & 0x80)) 
+				{ 
+					lcd_enabled = false; 
+					mem_link->memory_map[REG_LY] = 0; 
+					gpu_clock = 0; 
+				}
+			}
 		}
-	}
 
-	//If not in VBlank
-	//TODO: Add the rest of the STAT interrupts here
-	if(mem_link->memory_map[REG_LY] < 144)
-	{
-		//HBlank - Mode 0
-		if(gpu_clock <= 204) { gpu_mode = 0; }
+		//If not in VBlank
+		//TODO: Add the rest of the STAT interrupts here
+		if(mem_link->memory_map[REG_LY] < 144)
+		{
+			//HBlank - Mode 0
+			if(gpu_clock <= 204) { gpu_mode = 0; }
 		
-		//OAM Read - Mode 2
-		else if(gpu_clock <= 284) { gpu_mode = 2; }
+			//OAM Read - Mode 2
+			else if(gpu_clock <= 284) { gpu_mode = 2; }
 
-		//VRAM Read - Mode 3
-		else { gpu_mode = 3; }
+			//VRAM Read - Mode 3
+			else { gpu_mode = 3; }
+		}
+
+		mem_link->memory_map[REG_STAT] = (mem_link->memory_map[REG_STAT] & ~0x3) + gpu_mode;
 	}
-
-	mem_link->memory_map[REG_STAT] = (mem_link->memory_map[REG_STAT] & ~0x3) + gpu_mode;	 
 }
 			
 

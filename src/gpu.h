@@ -62,6 +62,8 @@ class GPU
 	int frame_start_time;
 	int frame_current_time;
 
+	bool lcd_enabled;
+
 	//Tile set data
 	gb_tile tile_set_1[0x100];
 	gb_tile tile_set_0[0x100];
