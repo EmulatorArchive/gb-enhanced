@@ -137,7 +137,7 @@ class CPU
 	inline void bit(u8 reg_one, u8 check_bit);
 	inline u8 res(u8 reg_one, u8 reset_bit);
 	inline u8 set(u8 reg_one, u8 set_bit);
-	inline u8 daa(u8 reg_one);
+	inline u8 daa();
 };
 
 #endif // GB_CPU
