@@ -77,20 +77,23 @@ void CPU::reset_bios()
 /****** Handle Interrupts to CPU ******/
 bool CPU::handle_interrupts()
 {
-	if(interrupt == true)
+
+	//Check which interrupts are enabled
+	u8 vblank_enable = mem.read_byte(REG_IE) & 0x01 ? 1 : 0;
+	u8 vblank_flag = mem.read_byte(REG_IF) & 0x01 ? 1 : 0;
+
+	u8 stat_enable = mem.read_byte(REG_IE) & 0x02 ? 1 : 0;
+	u8 stat_flag = mem.read_byte(REG_IF) & 0x02 ? 1 : 0;
+
+	u8 timer_enable = mem.read_byte(REG_IE) & 0x04 ? 1 : 0;
+	u8 timer_flag = mem.read_byte(REG_IF) & 0x04 ? 1 : 0;
+
+	//Only perform interrupts when the IME is enabled
+	if(interrupt)
 	{
-		//Check which interrupts are enabled
-		u8 vblank_enable = mem.read_byte(REG_IE) & 0x01 ? 1 : 0;
-		u8 vblank_flag = mem.read_byte(REG_IF) & 0x01 ? 1 : 0;
-
-		u8 stat_enable = mem.read_byte(REG_IE) & 0x02 ? 1 : 0;
-		u8 stat_flag = mem.read_byte(REG_IF) & 0x02 ? 1 : 0;
-
-		u8 timer_enable = mem.read_byte(REG_IE) & 0x04 ? 1 : 0;
-		u8 timer_flag = mem.read_byte(REG_IF) & 0x04 ? 1 : 0;
 
 		//Perform VBlank Interrupt
-		if((vblank_enable == 1) && (vblank_flag == 1))
+		if((vblank_enable) && (vblank_flag))
 		{
 			interrupt = false;
 			halt = false;
@@ -103,7 +106,7 @@ bool CPU::handle_interrupts()
 		}
 
 		//Perform LCD Status Interrupt
-		if((stat_enable == 1) && (stat_flag == 1))
+		if((stat_enable) && (stat_flag))
 		{
 			interrupt = false;
 			halt = false;
@@ -116,7 +119,7 @@ bool CPU::handle_interrupts()
 		}
 
 		//Perform Timer Overflow Interrupt
-		if((timer_enable == 1) && (timer_flag == 1))
+		if((timer_enable) && (timer_flag))
 		{
 			interrupt = false;
 			halt = false;
@@ -130,6 +133,9 @@ bool CPU::handle_interrupts()
 
 		else { return false; }
 	}
+
+	//When IME is disabled, pending interrupts will exit the Halt state
+	else if(mem.memory_map[REG_IF] && mem.memory_map[REG_IE]) { halt = false; return false; }
 
 	else { return false; }
 }	
@@ -1320,8 +1326,7 @@ void CPU::exec_op(u8 opcode)
 
 		//HALT
 		case 0x76 :
-			if(interrupt) { halt = true; }
-			//else { reg.pc++; }
+			halt = true;
 			cycles += 4;
 			break; 
 
