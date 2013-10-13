@@ -672,7 +672,9 @@ void CPU::exec_op(u8 opcode)
 			cycles += 8;
 			break;
 
-		//STOP - not implemented yet	
+		//STOP
+		case 0x10 :
+			break;	
 
 		//LD DE, nn
 		case 0x11 :
