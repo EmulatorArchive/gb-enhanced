@@ -315,16 +315,7 @@ bool MMU::read_file(std::string filename)
 
 		if(!sram.is_open()) { std::cout<<"MMU : " << save_ram_file << " battery file could not be opened. Check file path or permission\n"; }
 
-		else 
-		{
-			for(int x = 0; x < 4; x++)
-			{
-				for(int y = 0; y < 0x2000; y++)
-				{
-					sram >> random_access_bank[x][y];
-				}
-			}
-		}
+		else { sram.read((char*)random_access_bank, sizeof(random_access_bank)); }
 
 		sram.close();
 	}
@@ -363,13 +354,7 @@ void MMU::save_sram()
 
 		else 
 		{
-			for(int x = 0; x < 4; x++)
-			{
-				for(int y = 0; y < 0x2000; y++)
-				{
-					file << random_access_bank[x][y];
-				}
-			}
+			file.write((char*)random_access_bank, sizeof(random_access_bank));
 
 			file.close();
 			std::cout<<"MMU :  " << save_ram_file << " battery file saved.\n";
