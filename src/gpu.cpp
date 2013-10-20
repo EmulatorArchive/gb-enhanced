@@ -179,6 +179,8 @@ void GPU::generate_scanline()
 	u8 current_bgp = mem_link->memory_map[REG_BGP];
 	u8 current_pixel = 0x100 - mem_link->memory_map[REG_SX];
 
+	u32 bg_win_raw_data[0x100];
+
 	u16 map_addr = 0;
 	u16 tile_set_addr = 0;
 	u8 map_entry = 0;
@@ -211,6 +213,8 @@ void GPU::generate_scanline()
 			//Choose from the correct Tile Set
 			if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
 			else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
+
+			bg_win_raw_data[current_pixel] = tile_pixel;
 
 			//Output Scanline data to RGBA
 			switch(bgp[tile_pixel])
@@ -265,6 +269,8 @@ void GPU::generate_scanline()
 				//Choose from the correct Tile Set
 				if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
 				else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
+
+				bg_win_raw_data[current_pixel] = tile_pixel;
 			
 				//Output Scanline data to RGBA
 				switch(bgp[tile_pixel])
@@ -350,7 +356,7 @@ void GPU::generate_scanline()
 				//If raw data is 0, that's the sprites transparency
 				//In this case, we leave scanline data untouched
 				if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
-				else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (scanline_pixel_data[current_pixel] == 0xFFFFFFFF)) { draw_sprite_pixel = true; }
+				else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
 
 				if(draw_sprite_pixel) 
 				{
