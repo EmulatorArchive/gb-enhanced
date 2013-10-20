@@ -177,9 +177,7 @@ void GPU::generate_scanline()
 {
 	u8 current_scanline = mem_link->memory_map[REG_LY] + mem_link->memory_map[REG_SY];
 	u8 current_bgp = mem_link->memory_map[REG_BGP];
-	u8 current_pixel = 0;
-
-	u32 temp_scanline[0x100];
+	u8 current_pixel = 0x100 - mem_link->memory_map[REG_SX];
 
 	u16 map_addr = 0;
 	u16 tile_set_addr = 0;
@@ -237,19 +235,11 @@ void GPU::generate_scanline()
 			current_pixel++;
 		}
 	}
-			
-	//Account for X-Scroll
-	current_pixel = mem_link->memory_map[REG_SX];
 
 	for(int x = 0; x < 0x100; x++)
 	{
-		final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[current_pixel];
-		temp_scanline[x] = scanline_pixel_data[current_pixel];
-		current_pixel++;
+		final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[x];
 	}
-
-	//TODO: Find a better fix
-	for(int x = 0; x < 0x100; x++) { scanline_pixel_data[x] = temp_scanline[x]; }
 
 	//Render Window Pixel Data
 	if((mem_link->memory_map[REG_LY] - mem_link->memory_map[REG_WY] >= 0) && (mem_link->memory_map[REG_LCDC] & 0x20))
