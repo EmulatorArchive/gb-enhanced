@@ -200,49 +200,53 @@ void GPU::generate_scanline()
 	u16 tile_lower_range = (current_scanline/8) * 32;
 	u16 tile_upper_range = tile_lower_range + 32;
 
-	//Determine which line of the tiles we should generate pixels for this scanline
-	u8 tile_line = current_scanline % 8;
-
-	//Generate background pixel data for selected tiles
-	for(int x = tile_lower_range; x < tile_upper_range; x++)
+	//Render Background Pixel Data
+	if(mem_link->memory_map[REG_LCDC] & 0x01)
 	{
-		for(int y = (tile_line * 8); y < ((tile_line * 8) + 8); y++)
+		//Determine which line of the tiles we should generate pixels for this scanline
+		u8 tile_line = current_scanline % 8;
+
+		//Generate background pixel data for selected tiles
+		for(int x = tile_lower_range; x < tile_upper_range; x++)
 		{
-			map_entry = mem_link->memory_map[map_addr + x];
-
-			//Choose from the correct Tile Set
-			if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
-			else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
-
-			bg_win_raw_data[current_pixel] = tile_pixel;
-
-			//Output Scanline data to RGBA
-			switch(bgp[tile_pixel])
+			for(int y = (tile_line * 8); y < ((tile_line * 8) + 8); y++)
 			{
-				case 0: 
-					scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-					break;
+				map_entry = mem_link->memory_map[map_addr + x];
 
-				case 1: 
-					scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-					break;
+				//Choose from the correct Tile Set
+				if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
+				else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
 
-				case 2: 
-					scanline_pixel_data[current_pixel] = 0xFF606060;
-					break;
+				bg_win_raw_data[current_pixel] = tile_pixel;
 
-				case 3: 
-					scanline_pixel_data[current_pixel] = 0xFF000000;
-					break;
+				//Output Scanline data to RGBA
+				switch(bgp[tile_pixel])
+				{
+					case 0: 
+						scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+						break;
+
+					case 1: 
+						scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+						break;
+
+					case 2: 
+						scanline_pixel_data[current_pixel] = 0xFF606060;
+						break;
+
+					case 3: 
+						scanline_pixel_data[current_pixel] = 0xFF000000;
+						break;
+				}
+
+				current_pixel++;
 			}
-
-			current_pixel++;
 		}
-	}
 
-	for(int x = 0; x < 0x100; x++)
-	{
-		final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[x];
+		for(int x = 0; x < 0x100; x++)
+		{
+			final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[x];
+		}
 	}
 
 	//Render Window Pixel Data
