@@ -57,6 +57,7 @@ class GPU
 	private:
 
 	u8 gpu_mode;
+	u8 gpu_mode_change;
 	int gpu_clock;
 
 	int frame_start_time;

@@ -16,6 +16,7 @@
 GPU::GPU() 
 {
 	gpu_mode = 2;
+	gpu_mode_change = 0;
 	gpu_clock = 0;
 	frame_start_time = 0;
 	frame_current_time = 0;
@@ -28,8 +29,8 @@ GPU::GPU()
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
 	memset(tile_set_1, 0, sizeof(tile_set_1));
 	memset(tile_set_0, 0, sizeof(tile_set_0));
-	memset(scanline_pixel_data, 0, sizeof(scanline_pixel_data));
-	memset(final_pixel_data, 0, sizeof(final_pixel_data));
+	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
+	memset(final_pixel_data, 0xFFFFFFFF, sizeof(final_pixel_data));
 
 	for(int x = 0; x < 40; x++)
 	{
@@ -555,13 +556,19 @@ void GPU::step(int cpu_clock)
 
 			//HBlank - Mode 0
 			case 0 : 
+				//Render scanline when 1st entering Mode 0
+				if(gpu_mode_change != 0)
+				{
+					generate_scanline();
+					gpu_mode_change = 0;
+				}
+
 				if(gpu_clock >= 456)
 				{
 					gpu_clock -= 456;
 					gpu_mode = 2;
-					generate_scanline();
-					scanline_compare();
 					mem_link->memory_map[REG_LY]++;
+					scanline_compare();
 
 					//Render Screen after 144th line
 					if(mem_link->memory_map[REG_LY] == 144)
@@ -576,11 +583,13 @@ void GPU::step(int cpu_clock)
 
 			//VBlank - Mode 1
 			case 1 :
+				if(gpu_mode_change != 1) { gpu_mode_change = 1; }
+
 				if(gpu_clock >= 456)
 				{
 					gpu_clock -= 456;
-					scanline_compare();
 					mem_link->memory_map[REG_LY]++;
+					scanline_compare();
 
 					//After 10 lines, VBlank is done, returns to top screen in Mode 2
 					if(mem_link->memory_map[REG_LY] == 154) 
@@ -603,11 +612,13 @@ void GPU::step(int cpu_clock)
 
 			//OAM Read - Mode 2
 			case 2 :
+				if(gpu_mode_change != 2) { gpu_mode_change = 2; }
 				if(gpu_clock >= 80) { gpu_mode = 3; }
 				break;
 
 			//VRAM Read - Mode 3
 			case 3 :
+				if(gpu_mode_change != 3) { gpu_mode_change = 3; }
 				if(gpu_clock >= 252) { gpu_mode = 0; }
 				break;
 		}
