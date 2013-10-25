@@ -583,6 +583,7 @@ void GPU::step(int cpu_clock)
 					{ 
 						gpu_mode = 2;
 						mem_link->memory_map[REG_LY] = 0;
+						scanline_compare();
 					}
 
 	                                //Disable LCD - Must be done during VBlank only
@@ -590,6 +591,7 @@ void GPU::step(int cpu_clock)
                 	                { 
                         	                lcd_enabled = false; 
                                 	        mem_link->memory_map[REG_LY] = 0; 
+						scanline_compare();
                                         	gpu_clock = 0; 
                                 	}
 				}
