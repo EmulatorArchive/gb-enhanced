@@ -529,7 +529,11 @@ void GPU::step(int cpu_clock)
 	if(mem_link->gpu_reset_ticks) { gpu_clock = 0; mem_link->gpu_reset_ticks = false; }
 
 	//Enable LCD
-	if(mem_link->memory_map[REG_LCDC] & 0x80) { lcd_enabled = true; }
+	if((mem_link->memory_map[REG_LCDC] & 0x80) && (!lcd_enabled)) 
+	{ 
+		lcd_enabled = true;
+		gpu_mode = 2;
+	}
  
 	//Update background tile
 	if(mem_link->gpu_update_bg_tile)
@@ -583,6 +587,17 @@ void GPU::step(int cpu_clock)
 
 			//VBlank - Mode 1
 			case 1 :
+	                        //Disable LCD - Must be done during VBlank only
+        	                if(!(mem_link->memory_map[REG_LCDC] & 0x80)) 
+                	        { 
+                        	        lcd_enabled = false; 
+                                	mem_link->memory_map[REG_LY] = 0; 
+					scanline_compare();
+                                        gpu_clock = 0;
+					gpu_mode = 0;
+					break;
+                                }
+
 				if(gpu_mode_change != 1) { gpu_mode_change = 1; }
 
 				if(gpu_clock >= 456)
@@ -598,15 +613,6 @@ void GPU::step(int cpu_clock)
 						mem_link->memory_map[REG_LY] = 0;
 						scanline_compare();
 					}
-
-	                                //Disable LCD - Must be done during VBlank only
-        	                        if(!(mem_link->memory_map[REG_LCDC] & 0x80)) 
-                	                { 
-                        	                lcd_enabled = false; 
-                                	        mem_link->memory_map[REG_LY] = 0; 
-						scanline_compare();
-                                        	gpu_clock = 0; 
-                                	}
 				}
 				break;
 
