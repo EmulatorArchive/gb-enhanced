@@ -521,6 +521,10 @@ void GPU::render_screen()
 	frame_current_time = SDL_GetTicks();
 	if((frame_current_time - frame_start_time) < (1000/60)) { SDL_Delay((1000/60) - (frame_current_time - frame_start_time));}
 	else { std::cout<<"GPU : Late Blit\n"; }
+
+	//Clear pixel data after frame draw
+	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
+	memset(final_pixel_data, 0xFFFFFFFF, sizeof(final_pixel_data));
 }
 
 /****** Execute GPU Operations ******/
