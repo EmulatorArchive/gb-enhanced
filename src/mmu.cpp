@@ -153,6 +153,7 @@ void MMU::write_byte(u16 address, u8 value)
 		memory_map[address] = value;
 		gpu_update_bg_tile = true;
 		gpu_update_addr = address;
+		if(address <= 0x8FFF) { gpu_update_sprite = true; }
 	}
 
 	//VRAM - Background map
@@ -164,6 +165,13 @@ void MMU::write_byte(u16 address, u8 value)
 	//BGP
 	else if(address == REG_BGP)
 	{
+		memory_map[address] = value;
+	}
+
+	//OBP0 and OBP1
+	else if((address == REG_OBP0) || (address == REG_OBP1))
+	{
+		gpu_update_sprite = true;
 		memory_map[address] = value;
 	}
 
