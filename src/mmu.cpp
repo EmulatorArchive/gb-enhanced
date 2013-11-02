@@ -25,9 +25,12 @@ MMU::MMU()
 	gpu_reset_ticks = false;
 	gpu_update_addr = 0;
 
-	cart_mbc = 0;
 	cart_rom_size = 0;
 	cart_ram_size = 0;
+
+	mbc_type = ROM_ONLY;
+	cart_battery = false;
+	cart_ram = false;
 
 	rom_bank = 1;
 	ram_bank = 0;
@@ -52,25 +55,15 @@ u8 MMU::read_byte(u16 address)
 	}
 
 	//Read using ROM Banking
-	if((address >= 0x4000) && (address <= 0x7FFF) && (memory_map[ROM_MBC] > 0))
+	if((address >= 0x4000) && (address <= 0x7FFF) && (mbc_type != ROM_ONLY))
 	{
-		if((bank_mode == 0) && (((bank_bits << 5) | rom_bank) >= 2)) 
-		{ 
-			return read_only_bank[((bank_bits << 5) | rom_bank) - 2][address - 0x4000];
-		}
-
-		else if((bank_mode == 1) && (rom_bank >= 2)) 
-		{
-			return read_only_bank[rom_bank - 2][address - 0x4000]; 
-		}
+		return mbc_read(address);
 	}
 
 	//Read using RAM Banking
-	if((address >= 0xA000) && (address <= 0xBFFF))
+	if((address >= 0xA000) && (address <= 0xBFFF) && (cart_ram))
 	{
-		if((bank_mode == 0) && (ram_banking_enabled)) { return random_access_bank[0][address - 0xA000]; }
-		else if((bank_mode == 1) && (ram_banking_enabled)) { return random_access_bank[bank_bits][address - 0xA000]; }
-		else { return 0x00; }
+		return mbc_read(address);
 	}
 
 	//Read from P1
@@ -118,37 +111,10 @@ u16 MMU::read_word(u16 address)
 /****** Write Byte To Memory ******/
 void MMU::write_byte(u16 address, u8 value) 
 {
-	//For some reason, works consistently if we try reading EXRAM first
-	//TODO - Fix this ^
-	//External RAM
-	if((address >= 0xA000) && (address <= 0xBFFF))
-	{
-		if((bank_mode == 0) && (ram_banking_enabled)) { random_access_bank[0][address - 0xA000] = value; }
-		else if((bank_mode == 1) && (ram_banking_enabled)) { random_access_bank[bank_bits][address - 0xA000] = value; }
-	}
-
-	//MBC register - Enable or Disable RAM Banking
-	if(address <= 0x1FFF)
-	{
-		if((value & 0xF) == 0xA) { ram_banking_enabled = true; }
-		else { ram_banking_enabled = false; }
-	}
-
-	//MBC register - Select ROM bank - Bits 0 to 4
-	else if((address >= 0x2000) && (address <= 0x3FFF)) 
-	{ 
-		rom_bank = (value & 0x1F);
-		if(rom_bank & 0x1F == 0) { rom_bank += 1; }
-	}
-
-	//MBC register - Select ROM bank bits 5 to 6 or Set or RAM bank
-	else if((address >= 0x4000) && (address <= 0x5FFF)) { bank_bits = (value & 0x3); }
-
-	//MBC register - ROM/RAM Select
-	else if((address >= 0x6000) && (address <= 0x7FFF)) { bank_mode = (value & 0x1); }
+	if(mbc_type != ROM_ONLY) { mbc_write(address, value); }
 
 	//VRAM - Background tiles
-	else if((address >= 0x8000) && (address <= 0x97FF))
+	if((address >= 0x8000) && (address <= 0x97FF))
 	{
 		memory_map[address] = value;
 		gpu_update_bg_tile = true;
@@ -236,6 +202,36 @@ void MMU::write_word(u16 address, u16 value)
 	write_byte((address+1), (value >> 8));
 }
 
+/****** Determines which if any MBC to read from ******/
+u8 MMU::mbc_read(u16 address)
+{
+	switch(mbc_type)
+	{
+		case MBC1:
+			return mbc1_read(address);
+			break;
+
+		default:
+			std::cout<<"nigga what?\n";
+			break;
+	}
+}
+
+/****** Determines which if any MBC to write to ******/
+void MMU::mbc_write(u16 address, u8 value)
+{
+	switch(mbc_type)
+	{
+		case MBC1:
+			mbc1_write(address, value);
+			break;
+
+		default:
+			std::cout<<"Bitch please...\n";
+			break;
+	}
+}
+
 /****** Read binary file to memory ******/
 bool MMU::read_file(std::string filename)
 {
@@ -270,35 +266,46 @@ bool MMU::read_file(std::string filename)
 	switch(memory_map[ROM_MBC])
 	{
 		case 0: 
+			mbc_type = ROM_ONLY;
+
 			std::cout<<"MMU : Cartridge Type - ROM Only \n";
 			break;
 
 		case 1:
+			mbc_type = MBC1;
+
 			std::cout<<"MMU : Cartridge Type - MBC1 \n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
 		case 2: 
+			mbc_type = MBC1;
+			cart_ram = true;
+
 			std::cout<<"MMU : Cartridge Type - MBC1 + RAM \n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
 		case 3:
+			mbc_type = MBC1;
+			cart_ram = true;
+			cart_battery = true;
+
 			std::cout<<"MMU : Cartridge Type - MBC1 + RAM + Battery \n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
 		default:
-			std::cout<<"Catridge Type - 0x" << (int)memory_map[ROM_MBC] << "\n";
+			std::cout<<"Catridge Type - 0x" << std::hex << (int)memory_map[ROM_MBC] << "\n";
 			std::cout<<"MMU : MBC type currently unsupported \n";
 			return false;
 	}
 
 	//Read additional ROM data to banks
-	if(memory_map[ROM_MBC] > 0)
+	if(mbc_type != ROM_ONLY)
 	{
 		//Use a file positioner
 		u32 file_pos = 0x8000;
@@ -316,7 +323,7 @@ bool MMU::read_file(std::string filename)
 	std::cout<<"MMU : " << filename << " loaded successfully. \n"; 
 
 	//Load Saved RAM if available
-	if(memory_map[ROM_MBC] == 3)
+	if(cart_battery)
 	{
 		save_ram_file = filename.substr(0, (filename.length() - 2)) + "sram";
 		std::ifstream sram(save_ram_file.c_str(), std::ios::binary);
@@ -354,7 +361,7 @@ bool MMU::read_bios(std::string filename)
 /****** Save battery-backed RAM to file ******/
 void MMU::save_sram()
 {
-	if(memory_map[ROM_MBC] == 3)
+	if(cart_battery)
 	{
 		std::ofstream file(save_ram_file.c_str(), std::ios::binary);
 

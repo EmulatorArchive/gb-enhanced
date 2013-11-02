@@ -58,6 +58,19 @@ class MMU
 
 	void save_sram();
 
+	//Memory Bank Controller dedicated read/write operations
+	void mbc_write(u16 address, u8 value);
+	u8 mbc_read(u16 address);
+
+	void mbc1_write(u16 address, u8 value);
+	u8 mbc1_read(u16 address);
+
+	//Memory Bank Controller data
+	enum cart_type{ ROM_ONLY, MBC1, MBC2, MBC3, MBC5 };
+	cart_type mbc_type;
+	bool cart_battery;
+	bool cart_ram;
+
 	//Variables read by the GPU
 	//TODO: Extern these into a seperate namespace, this is messy 
 	bool gpu_update_bg_tile;
@@ -66,7 +79,6 @@ class MMU
 	u16 gpu_update_addr;
 
 	//Cartridge Info
-	u8 cart_mbc;
 	u32 cart_rom_size;
 	u32 cart_ram_size;
 	
