@@ -214,6 +214,10 @@ u8 MMU::mbc_read(u16 address)
 		case MBC2:
 			return mbc2_read(address);
 			break;
+
+		case MBC3:
+			return mbc3_read(address);
+			break;
 	}
 }
 
@@ -228,6 +232,10 @@ void MMU::mbc_write(u16 address, u8 value)
 
 		case MBC2:
 			mbc2_write(address, value);
+			break;
+
+		case MBC3:
+			mbc3_write(address, value);
 			break;
 	}
 }
@@ -313,6 +321,33 @@ bool MMU::read_file(std::string filename)
 			cart_battery = true;
 
 			std::cout<<"MMU : Cartridge Type - MBC2 + Battery\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x10:
+			mbc_type = MBC3;
+
+			std::cout<<"MMU : Cartridge Type - MBC3\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x12:
+			mbc_type = MBC3;
+			cart_ram = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC3 + RAM\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x13:
+			mbc_type = MBC3;
+			cart_ram = true;
+			cart_battery = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC3 + RAM + Battery\n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
