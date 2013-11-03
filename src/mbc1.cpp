@@ -3,7 +3,7 @@
 // See LICENSE.txt for full license text
 
 // File : mbc1.cpp
-// Date : October 2, 2013
+// Date : November 2, 2013
 // Description : Game Boy Memory Bank Controller 1 I/O handling
 //
 // Handles reading and writing bytes to memory locations for MBC1
