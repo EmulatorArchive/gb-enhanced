@@ -61,7 +61,7 @@ u8 MMU::read_byte(u16 address)
 	}
 
 	//Read using RAM Banking
-	if((address >= 0xA000) && (address <= 0xBFFF) && (cart_ram))
+	if((address >= 0xA000) && (address <= 0xBFFF) && (cart_ram) && (mbc_type != ROM_ONLY))
 	{
 		return mbc_read(address);
 	}
@@ -211,8 +211,8 @@ u8 MMU::mbc_read(u16 address)
 			return mbc1_read(address);
 			break;
 
-		default:
-			std::cout<<"nigga what?\n";
+		case MBC2:
+			return mbc2_read(address);
 			break;
 	}
 }
@@ -226,8 +226,8 @@ void MMU::mbc_write(u16 address, u8 value)
 			mbc1_write(address, value);
 			break;
 
-		default:
-			std::cout<<"Bitch please...\n";
+		case MBC2:
+			mbc2_write(address, value);
 			break;
 	}
 }
@@ -265,13 +265,13 @@ bool MMU::read_file(std::string filename)
 	//Determine MBC type
 	switch(memory_map[ROM_MBC])
 	{
-		case 0: 
+		case 0x0: 
 			mbc_type = ROM_ONLY;
 
 			std::cout<<"MMU : Cartridge Type - ROM Only \n";
 			break;
 
-		case 1:
+		case 0x1:
 			mbc_type = MBC1;
 
 			std::cout<<"MMU : Cartridge Type - MBC1 \n";
@@ -279,7 +279,7 @@ bool MMU::read_file(std::string filename)
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
-		case 2: 
+		case 0x2: 
 			mbc_type = MBC1;
 			cart_ram = true;
 
@@ -288,12 +288,31 @@ bool MMU::read_file(std::string filename)
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
-		case 3:
+		case 0x3:
 			mbc_type = MBC1;
 			cart_ram = true;
 			cart_battery = true;
 
 			std::cout<<"MMU : Cartridge Type - MBC1 + RAM + Battery \n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x5:
+			mbc_type = MBC2;
+			cart_ram = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC2 \n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x6:
+			mbc_type = MBC2;
+			cart_ram = true;
+			cart_battery = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC2 + Battery\n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
