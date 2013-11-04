@@ -57,6 +57,7 @@ class MMU
 	bool read_bios(std::string filename);
 
 	void save_sram();
+	void grab_time();
 
 	//Memory Bank Controller dedicated read/write operations
 	void mbc_write(u16 address, u8 value);
@@ -74,8 +75,11 @@ class MMU
 	//Memory Bank Controller data
 	enum cart_type{ ROM_ONLY, MBC1, MBC2, MBC3, MBC5 };
 	cart_type mbc_type;
+	u8 rtc_latch_1, rtc_latch_2, rtc_reg[5];
 	bool cart_battery;
 	bool cart_ram;
+	bool cart_rtc;
+	bool rtc_enabled;
 
 	//Variables read by the GPU
 	//TODO: Extern these into a seperate namespace, this is messy 

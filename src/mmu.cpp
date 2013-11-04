@@ -14,6 +14,7 @@
 
 #include "mmu.h"
 #include <iostream>
+#include <ctime>
 
 /****** MMU Constructor ******/
 MMU::MMU() 
@@ -31,6 +32,9 @@ MMU::MMU()
 	mbc_type = ROM_ONLY;
 	cart_battery = false;
 	cart_ram = false;
+	cart_rtc = false;
+	rtc_enabled = false;
+	rtc_latch_1 = rtc_latch_2 = 0xFF;
 
 	rom_bank = 1;
 	ram_bank = 0;
@@ -326,6 +330,20 @@ bool MMU::read_file(std::string filename)
 			break;
 
 		case 0x10:
+			mbc_type = MBC3;
+			cart_ram = true;
+			cart_battery = true;
+			cart_rtc = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC3 + RAM + Batter + Timer\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+
+			grab_time();
+
+			break;
+
+		case 0x11:
 			mbc_type = MBC3;
 
 			std::cout<<"MMU : Cartridge Type - MBC3\n";
