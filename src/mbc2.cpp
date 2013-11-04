@@ -12,7 +12,7 @@
 
 #include "mmu.h"
 
-//Performs write operations specific to the MBC2
+/****** Performs write operations specific to the MBC2 ******/
 void MMU::mbc2_write(u16 address, u8 value)
 {
 	//Write to Internal RAM
@@ -37,7 +37,7 @@ void MMU::mbc2_write(u16 address, u8 value)
 	}
 }
 
-//Performs read operations specific to the MBC2
+/****** Performs read operations specific to the MBC2 ******/
 u8 MMU::mbc2_read(u16 address)
 {
 	//Read using ROM Banking

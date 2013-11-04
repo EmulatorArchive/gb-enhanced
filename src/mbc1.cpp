@@ -11,7 +11,7 @@
 
 #include "mmu.h"
 
-//Performs write operations specific to the MBC1
+/****** Performs write operations specific to the MBC1 ******/
 void MMU::mbc1_write(u16 address, u8 value)
 {
 	//Write to External RAM
@@ -42,6 +42,7 @@ void MMU::mbc1_write(u16 address, u8 value)
 	else if((address >= 0x6000) && (address <= 0x7FFF)) { bank_mode = (value & 0x1); }
 }
 
+/****** Performs read operations specific to the MBC1 ******/
 u8 MMU::mbc1_read(u16 address)
 {
 	//Read using ROM Banking
@@ -61,6 +62,7 @@ u8 MMU::mbc1_read(u16 address)
 		else { return memory_map[address]; }
 	}
 
+	//Read using RAM Banking
 	else if((address >= 0xA000) && (address <= 0xBFFF))
 	{
 		if((bank_mode == 0) && (ram_banking_enabled)) { return random_access_bank[0][address - 0xA000]; }
