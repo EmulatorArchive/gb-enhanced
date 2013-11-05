@@ -229,6 +229,10 @@ u8 MMU::mbc_read(u16 address)
 		case MBC3:
 			return mbc3_read(address);
 			break;
+
+		case MBC5:
+			return mbc5_read(address);
+			break;
 	}
 }
 
@@ -247,6 +251,10 @@ void MMU::mbc_write(u16 address, u8 value)
 
 		case MBC3:
 			mbc3_write(address, value);
+			break;
+
+		case MBC5:
+			mbc5_write(address, value);
 			break;
 	}
 }
@@ -375,6 +383,33 @@ bool MMU::read_file(std::string filename)
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
 
+		case 0x19:
+			mbc_type = MBC5;
+
+			std::cout<<"MMU : Cartridge Type - MBC5\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x1A:
+			mbc_type = MBC5;
+			cart_ram = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC5 + RAM\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x1B:
+			mbc_type = MBC5;
+			cart_ram = true;
+			cart_battery = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC5 + RAM + Battery\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
 		default:
 			std::cout<<"Catridge Type - 0x" << std::hex << (int)memory_map[ROM_MBC] << "\n";
 			std::cout<<"MMU : MBC type currently unsupported \n";
@@ -448,7 +483,7 @@ void MMU::save_sram()
 	{
 		std::ofstream sram(save_ram_file.c_str(), std::ios::binary);
 
-		if(!file.is_open()) { std::cout<<"MMU :  " << save_ram_file << " battery file could not be saved. Check file path or permission\n";  }
+		if(!sram.is_open()) { std::cout<<"MMU :  " << save_ram_file << " battery file could not be saved. Check file path or permission\n";  }
 
 		else 
 		{

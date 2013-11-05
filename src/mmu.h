@@ -33,7 +33,7 @@ class MMU
 	std::vector< std::vector<u8> > read_only_bank;
 	std::vector< std::vector<u8> > random_access_bank;
 
-	u8 rom_bank;
+	u16 rom_bank;
 	u8 ram_bank;
 	u8 bank_bits;
 	u8 bank_mode;
@@ -72,6 +72,9 @@ class MMU
 
 	void mbc3_write(u16 address, u8 value);
 	u8 mbc3_read(u16 address);
+
+	void mbc5_write(u16 address, u8 value);
+	u8 mbc5_read(u16 address);
 
 	//Memory Bank Controller data
 	enum cart_type{ ROM_ONLY, MBC1, MBC2, MBC3, MBC5 };
