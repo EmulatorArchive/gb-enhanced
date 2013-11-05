@@ -16,6 +16,7 @@
 #include <fstream>
 #include <string>
 #include <cstring>
+#include <vector>
 
 #include "common.h"
 #include "gamepad.h"
@@ -29,8 +30,8 @@ class MMU
 	u8 bios [0x100];
 
 	//Memory Banks
-	u8 read_only_bank[0x7F][0x4000];
-	u8 random_access_bank[0x4][0x2000];
+	std::vector< std::vector<u8> > read_only_bank;
+	std::vector< std::vector<u8> > random_access_bank;
 
 	u8 rom_bank;
 	u8 ram_bank;

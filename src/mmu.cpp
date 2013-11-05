@@ -43,6 +43,13 @@ MMU::MMU()
 	ram_banking_enabled = false;
 
 	save_ram_file = "";
+
+	read_only_bank.resize(0x200);
+	for(int x = 0; x < 0x200; x++) { read_only_bank[x].resize(0x4000, 0); }
+
+	random_access_bank.resize(0x10);
+	for(int x = 0; x < 0x10; x++) { random_access_bank[x].resize(0x2000, 0); }
+
 }
 
 /****** MMU Deconstructor ******/
@@ -248,8 +255,6 @@ void MMU::mbc_write(u16 address, u8 value)
 bool MMU::read_file(std::string filename)
 {
 	memset(memory_map, 0, sizeof(memory_map));
-	memset(read_only_bank, 0, sizeof(read_only_bank));
-	memset(random_access_bank, 0, sizeof(random_access_bank));
 
 	std::ifstream file(filename.c_str(), std::ios::binary);
 
@@ -385,7 +390,7 @@ bool MMU::read_file(std::string filename)
 
 		while(file_pos < (cart_rom_size * 1024))
 		{
-			file.read((char*)read_only_bank[bank_count], 0x4000);
+			file.read(reinterpret_cast<char*> (&read_only_bank[bank_count][0]), 0x4000);
 			file_pos += 0x4000;
 			bank_count++;
 		}
@@ -402,7 +407,13 @@ bool MMU::read_file(std::string filename)
 
 		if(!sram.is_open()) { std::cout<<"MMU : " << save_ram_file << " battery file could not be opened. Check file path or permission\n"; }
 
-		else { sram.read((char*)random_access_bank, sizeof(random_access_bank)); }
+		else 
+		{
+			for(int x = 0; x < 0x10; x++)
+			{
+				sram.read(reinterpret_cast<char*> (&random_access_bank[x][0]), 0x2000); 
+			}
+		}
 
 		sram.close();
 	}
@@ -435,15 +446,18 @@ void MMU::save_sram()
 {
 	if(cart_battery)
 	{
-		std::ofstream file(save_ram_file.c_str(), std::ios::binary);
+		std::ofstream sram(save_ram_file.c_str(), std::ios::binary);
 
 		if(!file.is_open()) { std::cout<<"MMU :  " << save_ram_file << " battery file could not be saved. Check file path or permission\n";  }
 
 		else 
 		{
-			file.write((char*)random_access_bank, sizeof(random_access_bank));
+			for(int x = 0; x < 0x10; x++)
+			{
+				sram.write(reinterpret_cast<char*> (&random_access_bank[x][0]), 0x2000); 
+			}
 
-			file.close();
+			sram.close();
 			std::cout<<"MMU :  " << save_ram_file << " battery file saved.\n";
 		}
 	}
