@@ -569,6 +569,9 @@ void GPU::step(int cpu_clock)
 				{
 					generate_scanline();
 					gpu_mode_change = 0;
+					
+					//HBlank STAT INT
+					if(mem_link->memory_map[REG_STAT] & 0x08) { mem_link->memory_map[REG_IF] |= 2; }
 				}
 
 				if(gpu_clock >= 456)
@@ -602,7 +605,13 @@ void GPU::step(int cpu_clock)
 					break;
                                 }
 
-				if(gpu_mode_change != 1) { gpu_mode_change = 1; }
+				if(gpu_mode_change != 1) 
+				{ 
+					gpu_mode_change = 1; 
+					
+					//VBlank STAT INT
+					if(mem_link->memory_map[REG_STAT] & 0x10) { mem_link->memory_map[REG_IF] |= 2; }
+				}
 
 				if(gpu_clock >= 456)
 				{
@@ -622,7 +631,14 @@ void GPU::step(int cpu_clock)
 
 			//OAM Read - Mode 2
 			case 2 :
-				if(gpu_mode_change != 2) { gpu_mode_change = 2; }
+				if(gpu_mode_change != 2) 
+				{ 
+					gpu_mode_change = 2; 
+
+					//OAM STAT INT
+					if(mem_link->memory_map[REG_STAT] & 0x20) { mem_link->memory_map[REG_IF] |= 2; }
+				}
+
 				if(gpu_clock >= 80) { gpu_mode = 3; }
 				break;
 
