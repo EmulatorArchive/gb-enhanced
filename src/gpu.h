@@ -47,6 +47,7 @@ class GPU
 	//Screen Data
 	SDL_Surface* gpu_screen;
 	SDL_Surface* src_screen;
+	SDL_Surface* temp_screen;
 
 	//Core Functions
 	GPU();

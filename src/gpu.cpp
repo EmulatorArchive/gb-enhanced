@@ -21,9 +21,15 @@ GPU::GPU()
 	frame_start_time = 0;
 	frame_current_time = 0;
 	gpu_screen = NULL;
+	temp_screen = NULL;
 	mem_link = NULL;
 	lcd_enabled = false;
-	
+
+	if(config::use_scaling)
+	{	
+		temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (256 * config::scaling_factor), 32, 0, 0, 0, 0);
+	}
+
 	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
 
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
@@ -243,11 +249,6 @@ void GPU::generate_scanline()
 				current_pixel++;
 			}
 		}
-
-		for(int x = 0; x < 0x100; x++)
-		{
-			final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[x];
-		}
 	}
 
 	//Render Window Pixel Data
@@ -301,12 +302,6 @@ void GPU::generate_scanline()
 				if(current_pixel == 0) { x = tile_upper_range; break; }
 			}
 		}
-
-		for(int x = 0, current_pixel = 0; x < 0x100; x++)
-		{
-			final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[current_pixel];
-			current_pixel++;
-		}
 	}
 
 	//Render Sprite Pixel Data
@@ -316,7 +311,7 @@ void GPU::generate_scanline()
 		u8 sprite_render_list[10];
 		u8 sprite_render_line[10];
 		u16 sprite_height = 0;
-		int sprite_counter = -1;
+		int sprite_counter = 0;
 
 		current_pixel = 0;
 
@@ -335,66 +330,69 @@ void GPU::generate_scanline()
 				{
 					if((sprites[x].y + y) == mem_link->memory_map[REG_LY])
 					{
-						sprite_counter++;
 						sprite_render_list[sprite_counter] = x;
 						sprite_render_line[sprite_counter] = y;
+						sprite_counter++;
 					}
 				}
 			}
 		}
 
-		//Cycle through sprite list
-		for(int x = sprite_counter; x >= 0; x--)
+		if(sprite_counter != 0)
 		{
-			u8 current_sprite = sprite_render_list[x];
-			u8 sprite_line = sprite_render_line[x];
-			u8 priority = sprites[current_sprite].options & 0x80 ? 1 : 0;
-			u8 pal = sprites[current_sprite].options & 0x10 ? 1 : 0;
-
-			current_pixel = sprites[current_sprite].x;
-
-			//Draw each sprite
-			for(int y = (sprite_line * 8); y < (sprite_line  * 8) + 8; y++)
+			//Cycle through sprite list
+			for(int x = (sprite_counter - 1); x >= 0; x--)
 			{
-				bool draw_sprite_pixel = false;
+				u8 current_sprite = sprite_render_list[x];
+				u8 sprite_line = sprite_render_line[x];
+				u8 priority = sprites[current_sprite].options & 0x80 ? 1 : 0;
+				u8 pal = sprites[current_sprite].options & 0x10 ? 1 : 0;
 
-				//If raw data is 0, that's the sprites transparency
-				//In this case, we leave scanline data untouched
-				if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
-				else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+				current_pixel = sprites[current_sprite].x;
 
-				if(draw_sprite_pixel) 
+				//Draw each sprite
+				for(int y = (sprite_line * 8); y < (sprite_line  * 8) + 8; y++)
 				{
-					//Output Scanline data to RGBA
-					switch(obp[sprites[current_sprite].raw_data[y]][pal])
+					bool draw_sprite_pixel = false;
+
+					//If raw data is 0, that's the sprites transparency
+					//In this case, we leave scanline data untouched
+					if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
+					else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+
+					if(draw_sprite_pixel) 
 					{
-						case 0: 
-							scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-							break;
+						//Output Scanline data to RGBA
+						switch(obp[sprites[current_sprite].raw_data[y]][pal])
+						{
+							case 0: 
+								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+								break;
 
-						case 1: 
-							scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-							break;
+							case 1: 
+								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+								break;
 
-						case 2: 
-							scanline_pixel_data[current_pixel] = 0xFF606060;
-							break;
+							case 2: 
+								scanline_pixel_data[current_pixel] = 0xFF606060;
+								break;
 
-						case 3: 
-							scanline_pixel_data[current_pixel] = 0xFF000000;
-							break;
+							case 3: 
+								scanline_pixel_data[current_pixel] = 0xFF000000;
+								break;
+						}
 					}
-				}
 
-				current_pixel++;
+					current_pixel++;
+				}
 			}
 		}
+	}
 
-		for(int x = 0, current_pixel = 0; x < 0x100; x++)
-		{
-			final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[current_pixel];
-			current_pixel++;
-		}
+	//Copy scanline data to final buffer
+	for(int x = 0; x < 0x100; x++)
+	{
+		final_pixel_data[(mem_link->memory_map[REG_LY] * 0x100) + x] = scanline_pixel_data[x];
 	}
 }
 
@@ -491,13 +489,15 @@ void GPU::render_screen()
 	//LCD On - Draw background to framebuffer
 	if(mem_link->memory_map[REG_LCDC] & 0x80) 
 	{
-		for(int a = 0; a < 0x10000; a++) { out_pixel_data[a] = final_pixel_data[a]; }
+		//Technically, it's only necessary to copy scanlines 0-143
+		//Scanlines 144+ aren't even rendered by generate_scanline()
+		for(int a = 0; a < 0x9000; a++) { out_pixel_data[a] = final_pixel_data[a]; }
 	}
 
 	//LCD Off - Draw white pixels to framebuffer
 	else
 	{
-		for(int a = 0; a < 0x10000; a++) { out_pixel_data[a] = 0xFFFFFFFF; }
+		memset(out_pixel_data, 0xFFFFFFFF, sizeof(out_pixel_data));
 	}
 
 	//Unlock source surface
@@ -505,11 +505,9 @@ void GPU::render_screen()
 
 	//Scale the source image...
 	if(config::use_scaling) 
-	{ 
-		SDL_Surface* temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (256 * config::scaling_factor), 32, 0, 0, 0, 0);
+	{
 		apply_scaling(src_screen, temp_screen);
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
-		SDL_FreeSurface(temp_screen);
 	}
 	
 	//Or just blit to unscaled image to screen
