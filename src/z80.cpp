@@ -77,23 +77,11 @@ void CPU::reset_bios()
 /****** Handle Interrupts to CPU ******/
 bool CPU::handle_interrupts()
 {
-
-	//Check which interrupts are enabled
-	u8 vblank_enable = mem.read_byte(REG_IE) & 0x01 ? 1 : 0;
-	u8 vblank_flag = mem.read_byte(REG_IF) & 0x01 ? 1 : 0;
-
-	u8 stat_enable = mem.read_byte(REG_IE) & 0x02 ? 1 : 0;
-	u8 stat_flag = mem.read_byte(REG_IF) & 0x02 ? 1 : 0;
-
-	u8 timer_enable = mem.read_byte(REG_IE) & 0x04 ? 1 : 0;
-	u8 timer_flag = mem.read_byte(REG_IF) & 0x04 ? 1 : 0;
-
 	//Only perform interrupts when the IME is enabled
 	if(interrupt)
 	{
-
 		//Perform VBlank Interrupt
-		if((vblank_enable) && (vblank_flag))
+		if((mem.memory_map[REG_IE] & 0x01) && (mem.memory_map[REG_IF] & 0x01))
 		{
 			interrupt = false;
 			halt = false;
@@ -106,7 +94,7 @@ bool CPU::handle_interrupts()
 		}
 
 		//Perform LCD Status Interrupt
-		if((stat_enable) && (stat_flag))
+		if((mem.memory_map[REG_IE] & 0x02) && (mem.memory_map[REG_IF] & 0x02))
 		{
 			interrupt = false;
 			halt = false;
@@ -119,7 +107,7 @@ bool CPU::handle_interrupts()
 		}
 
 		//Perform Timer Overflow Interrupt
-		if((timer_enable) && (timer_flag))
+		if((mem.memory_map[REG_IE] & 0x04) && (mem.memory_map[REG_IF] & 0x04))
 		{
 			interrupt = false;
 			halt = false;
