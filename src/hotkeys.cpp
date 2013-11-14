@@ -27,7 +27,9 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F9)) { take_screenshot(gb_gpu); }
 
 	//Send input to Game Pad if not a hotkey
-	else if((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP)) { z80.mem.pad.handle_input(event); }
+	else if((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP) 
+	|| (event.type == SDL_JOYBUTTONDOWN) || (event.type == SDL_JOYBUTTONUP)
+	|| (event.type == SDL_JOYAXISMOTION) || (event.type == SDL_JOYHATMOTION)) { z80.mem.pad.handle_input(event); }
 }
 
 /****** Takes screenshot - Accounts for image scaling ******/

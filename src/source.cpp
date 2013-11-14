@@ -32,6 +32,13 @@ int main(int argc, char* args[])
 
 	if(!parse_cli_args()) { return 1; }
 
+	//Initialize SDL
+	if(SDL_Init(SDL_INIT_EVERYTHING) == -1) 
+	{
+		std::cout<<"Error : Could not initialize SDL\n";
+		return 1;
+	}
+
 	std::cout<<"Initializing Z80 CPU... \n";
 	CPU z80;
 	
@@ -48,13 +55,6 @@ int main(int argc, char* args[])
 	else { z80.reset(); }
 
 	u8 op = 0;
-	
-	//Initialize SDL
-	if(SDL_Init(SDL_INIT_EVERYTHING) == -1) 
-	{
-		std::cout<<"Error : Could not initialize SDL\n";
-		return 1;
-	}
 
 	//Initialize the screen - account for scaling
 	if(!config::use_scaling) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); }

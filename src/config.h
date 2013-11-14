@@ -26,6 +26,9 @@ namespace config
 	extern bool use_scaling;
 	extern int scaling_mode;
 	extern int scaling_factor;
+	extern int key_a, key_b, key_start, key_select, key_up, key_down, key_left, key_right;
+	extern int joy_a, joy_b, joy_start, joy_select, joy_up, joy_down, joy_left, joy_right;
+	extern int dead_zone;
 }
 
 #endif // GB_CONFIG

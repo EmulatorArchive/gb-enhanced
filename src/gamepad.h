@@ -17,6 +17,7 @@
 #include <iostream>
 
 #include "common.h"
+#include "config.h"
 
 class GamePad
 {
@@ -25,10 +26,16 @@ class GamePad
 	u8 p14, p15;
 	u8 column_id;
 
+	int pad;
+
+	SDL_Joystick* jstick;
+
 	GamePad();
 	~GamePad();
 
 	void handle_input(SDL_Event &event);
+	void process_keyboard(int pad, bool pressed);
+	void process_joystick(int pad, bool pressed);
 	u8 read();
 };
 
