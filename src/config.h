@@ -13,9 +13,9 @@
 
 #include <vector>
 #include <string>
-#include <iostream>
 
 bool parse_cli_args();
+bool parse_config_file();
 
 namespace config
 { 
@@ -29,6 +29,7 @@ namespace config
 	extern int key_a, key_b, key_start, key_select, key_up, key_down, key_left, key_right;
 	extern int joy_a, joy_b, joy_start, joy_select, joy_up, joy_down, joy_left, joy_right;
 	extern int dead_zone;
+	extern std::vector <int> ini_parameters;
 }
 
 #endif // GB_CONFIG

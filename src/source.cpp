@@ -23,7 +23,10 @@ int main(int argc, char* args[])
 {
 	SDL_Event event;
 
-	//Parse Command-line arguments
+	//Parse gbe.ini config file
+	parse_config_file();
+
+	//Parse Command-line arguments - these override settings in gbe.ini
 	for(int x = 0; x++ < argc - 1;) 
 	{ 
 		std::string temp_arg = args[x]; 
@@ -59,6 +62,8 @@ int main(int argc, char* args[])
 	//Initialize the screen - account for scaling
 	if(!config::use_scaling) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); }
 	else { gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE); }
+
+	SDL_WM_SetCaption("GBE", NULL);
 
 	//Read BIOS
 	if((z80.mem.in_bios) && (!z80.mem.read_bios("bios.bin"))) { return 1; }

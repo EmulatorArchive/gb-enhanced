@@ -9,6 +9,8 @@
 // Implements various image scaling techniques
 // Current filters: Nearest Neighbor 2x-4x
 
+#include <iostream>
+
 #include "filter.h"
 #include "common.h"
 #include "config.h"
