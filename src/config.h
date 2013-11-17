@@ -30,6 +30,7 @@ namespace config
 	extern int joy_a, joy_b, joy_start, joy_select, joy_up, joy_down, joy_left, joy_right;
 	extern int dead_zone;
 	extern std::vector <int> ini_parameters;
+	extern bool turbo;
 }
 
 #endif // GB_CONFIG

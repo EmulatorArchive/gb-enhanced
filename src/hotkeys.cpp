@@ -9,9 +9,11 @@
 // Processes action for various hotkey actions
 // Handles things like save states, screenshots, pausing, etc
 
-#include "hotkeys.h"
 #include <ctime>
 #include <sstream>
+
+#include "hotkeys.h"
+#include "config.h"
 
 /****** Process key input - Do hotkey action or send input to Game Pad ******/
 void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
@@ -25,6 +27,12 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 
 	//Screenshot on F9
 	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F9)) { take_screenshot(gb_gpu); }
+
+	//Temporarily disable disable framelimit on TAB
+	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_TAB)) { config::turbo = true; }
+
+	//Re-enable framelimit
+	else if((event.type == SDL_KEYUP) && (event.key.keysym.sym == SDLK_TAB)) { config::turbo = false; }
 
 	//Send input to Game Pad if not a hotkey
 	else if((event.type == SDL_KEYDOWN) || (event.type == SDL_KEYUP) 

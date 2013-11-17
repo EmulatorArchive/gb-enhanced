@@ -37,6 +37,9 @@ namespace config
 
 	//Default joystick dead-zone
 	int dead_zone = 16000;
+
+	//Temporarily disable framelimit
+	bool turbo = false;
 }
 
 /****** Parse arguments passed from the command-line ******/

@@ -516,9 +516,12 @@ void GPU::render_screen()
 	if(SDL_Flip(gpu_screen) == -1) { std::cout<<"Could not blit? \n"; }
 
 	//Limit FPS to 60
-	frame_current_time = SDL_GetTicks();
-	if((frame_current_time - frame_start_time) < (1000/60)) { SDL_Delay((1000/60) - (frame_current_time - frame_start_time));}
-	else { std::cout<<"GPU : Late Blit\n"; }
+	if(!config::turbo)
+	{
+		frame_current_time = SDL_GetTicks();
+		if((frame_current_time - frame_start_time) < (1000/60)) { SDL_Delay((1000/60) - (frame_current_time - frame_start_time));}
+		else { std::cout<<"GPU : Late Blit\n"; }
+	}
 
 	//Clear pixel data after frame draw
 	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
