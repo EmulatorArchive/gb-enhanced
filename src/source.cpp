@@ -17,6 +17,7 @@
 #include "mmu.h"
 #include "z80.h"
 #include "gpu.h"
+#include "apu.h"
 #include "hotkeys.h"
 
 int main(int argc, char* args[]) 
@@ -48,8 +49,16 @@ int main(int argc, char* args[])
 	std::cout<<"Initializing GPU... \n";
 	GPU gb_gpu;
 
+	std::cout<<"Initializing APU... \n";
+	APU gb_apu;
+
 	//Link GPU and MMU
 	gb_gpu.mem_link = &z80.mem;
+
+	//Link APU and MMU
+	gb_apu.mem_link = &z80.mem;
+
+    	SDL_PauseAudio(0);
 
 	//Determine if BIOS are HLE'd or LLE'd - Reset CPU accordingly
 	z80.mem.in_bios = config::use_bios;
@@ -106,6 +115,9 @@ int main(int argc, char* args[])
 
 		//Update GPU
 		gb_gpu.step(z80.cpu_clock_t);
+
+		//Update APU
+		gb_apu.step();
 
 		//Update DIV timer - Every 4 M clocks
 		z80.div_counter += z80.cpu_clock_t;

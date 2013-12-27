@@ -26,6 +26,9 @@ MMU::MMU()
 	gpu_reset_ticks = false;
 	gpu_update_addr = 0;
 
+	apu_update_channel = false;
+	apu_update_addr = 0;
+
 	cart_rom_size = 0;
 	cart_ram_size = 0;
 
@@ -202,6 +205,14 @@ void MMU::write_byte(u16 address, u8 value)
 
 	//P1 - Joypad register
 	else if(address == REG_P1) { pad.column_id = (value & 0x30); memory_map[REG_P1] = pad.read(); }
+
+	//Update Sound Channels
+	else if((address == 0xFF14) || (address == 0xFF19)) 
+	{
+		memory_map[address] = value;
+		apu_update_channel = true; 
+		apu_update_addr = address; 
+	}
 
 	else if(address > 0x7FFF) { memory_map[address] = value; }
 }

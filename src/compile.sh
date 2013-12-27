@@ -68,6 +68,13 @@ else
 	exit
 fi
 
+if g++ -c -O3 -funroll-loops apu.cpp -lSDL; then
+	echo -e "Compiling GB APU...			\E[32m[DONE]\E[37m"
+else
+	echo -e "Compiling GB APU...			\E[31m[ERROR]\E[37m"
+	exit
+fi
+
 if g++ -c -O3 -funroll-loops hotkeys.cpp -lSDL; then
 	echo -e "Compiling Hotkeys...			\E[32m[DONE]\E[37m"
 else
@@ -82,7 +89,7 @@ else
 	exit
 fi
 
-if g++ -o gbe config.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o hotkeys.o source.o -lSDL; then
+if g++ -o gbe config.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o apu.o hotkeys.o source.o -lSDL; then
 	echo -e "Linking Project...			\E[32m[DONE]\E[37m"
 else
 	echo -e "Linking Project...			\E[31m[ERROR]\E[37m"
