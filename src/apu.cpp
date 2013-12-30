@@ -283,12 +283,15 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 
 			}
 
-			else { channel[0].sample_length = stream[x] = -32768; channel[0].playing = false; }
+			else { channel[0].sample_length = 0; stream[x] = -32768; channel[0].playing = false; }
 		}
 	}
 
 	//Otherwise, generate silence
-	else { memset(stream, -32768, sizeof(stream)); };
+	else 
+	{
+		for(int x = 0; x < length; x++) { stream[x] = -32768; }
+	}	
 }
 
 /******* Generate samples for GB sound channel 2 ******/
@@ -335,12 +338,15 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 
 			}
 
-			else { channel[1].sample_length = stream[x] = 0; channel[1].playing = false; }
+			else { channel[1].sample_length  = 0; stream[x] = 0; channel[1].playing = false; }
 		}
 	}
 
 	//Otherwise, generate silence
-	else { memset(stream, 0, sizeof(stream)); };
+	else 
+	{
+		for(int x = 0; x < length; x++) { stream[x] = -32768; }
+	}	
 }
 
 /****** Execute APU operations ******/
