@@ -207,9 +207,9 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 	{
 		int freq_samples = 44100/channel[0].frequency;
 
-		for(int x = 0; x < length; x++)
+		for(int x = 0; x < length; x++, channel[0].sample_length--)
 		{
-			if(channel[0].sample_length-- > 0)
+			if(channel[0].sample_length > 0)
 			{
 				channel[0].freq_dist++;
 
@@ -283,6 +283,10 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 
 			}
 
+			//Continuously generate sound if necessary
+			else if((channel[0].sample_length == 0) && (channel[0].duration == 5000)) { channel[0].sample_length = (channel[0].duration * 44100)/1000; }
+
+			//Or stop sound after duration has been met
 			else { channel[0].sample_length = 0; stream[x] = -32768; channel[0].playing = false; }
 		}
 	}
@@ -302,9 +306,9 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 	{
 		int freq_samples = 44100/channel[1].frequency;
 
-		for(int x = 0; x < length; x++)
+		for(int x = 0; x < length; x++, channel[1].sample_length--)
 		{
-			if(channel[1].sample_length-- > 0)
+			if(channel[1].sample_length > 0)
 			{
 				channel[1].freq_dist++;
 				channel[1].envelope_counter++;
@@ -338,7 +342,11 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 
 			}
 
-			else { channel[1].sample_length  = 0; stream[x] = 0; channel[1].playing = false; }
+			//Continuously generate sound if necessary
+			else if((channel[1].sample_length == 0) && (channel[1].duration == 5000)) { channel[1].sample_length = (channel[1].duration * 44100)/1000; }
+
+			//Or stop sound after duration has been met
+			else { channel[1].sample_length = 0; stream[x] = -32768; channel[1].playing = false; }
 		}
 	}
 
