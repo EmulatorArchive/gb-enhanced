@@ -37,6 +37,9 @@ struct voice
 	u32 sweep_step;
 	u32 sweep_time;
 	u32 sweep_counter;
+
+	double wave_step;
+	u8 wave_shift;
 };
 
 class APU
@@ -59,6 +62,9 @@ class APU
 
 	void generate_channel_2_samples(s16* stream, int length);
 	void play_channel_2();
+
+	void generate_channel_3_samples(s16* stream, int length);
+	void play_channel_3();
 
 	void step();
 };

@@ -10,6 +10,7 @@
 // Generates and mixes samples for the GB's 4 sound channels
 
 #include <iostream>
+#include <cmath>
 
 #include "apu.h"
 
@@ -40,6 +41,9 @@ APU::APU()
 		channel[x].sweep_step = 0;
 		channel[x].sweep_counter = 0;
 		channel[x].sweep_time = 0;
+
+		channel[x].wave_step = 0;
+		channel[x].wave_shift = 0;
 	}
 
 	//Initialize SDL audio
@@ -135,6 +139,10 @@ void APU::play_channel_1()
 		channel[0].sweep_direction = (mem_link->memory_map[0xFF10] & 0x08) ? 1 : 0;
 		channel[0].sweep_time = ((mem_link->memory_map[0xFF10] >> 4) & 0x7);
 		channel[0].sweep_step = (mem_link->memory_map[0xFF10] & 0x7);
+
+		//std::cout<<"S1 Play\n";
+		//std::cout<<"S1 Freq : " << channel[0].frequency << "\n";
+		//std::cout<<"S1 Duration : " << channel[0].duration << "\n\n\n";
 	} 
 }
 
@@ -196,6 +204,21 @@ void APU::play_channel_2()
 		channel[1].volume = (mem_link->memory_map[0xFF17] >> 4);
 		channel[1].envelope_direction = (mem_link->memory_map[0xFF17] & 0x08) ? 1 : 0;
 		channel[1].envelope_step = (mem_link->memory_map[0xFF17] & 0x07);
+	}
+}
+
+/****** Play GB sound channel 3 - RAM Waveform ******/
+void APU::play_channel_3()
+{
+	//Play sound only if Channel 3's Status is ON and Trigger bit is set
+	if(((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
+	{
+		//Frequency, duration, wave RAM, etc, can dynamically changed
+		//The rest of the info should be determined upon sample generation
+		channel[2].freq_dist = 0;
+		channel[2].frequency = 0;
+		channel[2].duration = 0;
+		channel[2].playing = true;
 	}
 }
 
@@ -357,6 +380,120 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 	}	
 }
 
+/******* Generate samples for GB sound channel 3 ******/
+void APU::generate_channel_3_samples(s16* stream, int length)
+{
+	//Process samples if playing
+	if(channel[2].playing)
+	{
+		//Duration
+		if((mem_link->memory_map[0xFF1E] & 0x40) == 0) 
+		{
+			if(channel[2].duration != 5000)
+			{
+				channel[2].duration = 5000; 
+				channel[2].sample_length = (channel[2].duration * 44100)/1000; 
+			}
+		}
+		
+		else 
+		{
+			u32 temp_duration = mem_link->memory_map[0xFF1B];
+			temp_duration = (1000/256) * (256 - temp_duration);
+			
+			if(temp_duration != channel[2].duration) 
+			{ 
+				channel[2].duration = temp_duration;
+				channel[2].sample_length = (channel[2].duration * 44100)/1000; 
+			}
+		}
+
+		//Frequency
+		u32 frequency = mem_link->memory_map[0xFF1E];
+		frequency <<= 8;
+		frequency |= mem_link->memory_map[0xFF1D];
+		frequency = (frequency & 0x7FF);
+		channel[2].frequency = 4194304.0/(32 * (2048-frequency));
+
+		//Sound channel 3's frequency timer period runs twice as long as, say sound channel 1
+		//Since GBE does not have cycle-accurate APU emulation, it halves the frequency here
+		//Output should still be identical, sounds right in homebrew tests
+		//It works, trust me
+		channel[2].frequency /= 2;
+
+		//Determine waveform RAM shifting
+		switch(((mem_link->memory_map[0xFF1C] >> 5) & 0x3))
+		{
+			case 0x0:
+				channel[2].wave_shift = 4;
+				break;
+	
+			case 0x1:
+				channel[2].wave_shift = 0;
+				break;
+		
+			case 0x2:
+				channel[2].wave_shift = 1;
+				break;
+
+			case 0x3:
+				channel[2].wave_shift = 2;
+				break;
+		}
+
+		//Determine amount of samples per waveform step
+		channel[2].wave_step = (44100.0/channel[2].frequency)/32.0;
+
+		int freq_samples = 44100/channel[2].frequency;
+
+		for(int x = 0; x < length; x++, channel[2].sample_length--)
+		{
+			if(channel[2].sample_length > 0)
+			{
+				channel[2].freq_dist++;
+				
+				//Reset frequency distance
+				if(channel[2].freq_dist >= freq_samples) { channel[2].freq_dist = 0; }
+
+				//Determine which step in the waveform the current sample corresponds to
+				int ram_count = int(floor(channel[2].freq_dist/channel[2].wave_step)) % 32;
+
+				//Grab wave RAM step data for even steps
+				if(ram_count % 2 == 0)
+				{
+					u32 address = 0xFF30 + (ram_count/2);
+					u8 wave_ram_data = (mem_link->memory_map[address] >> 4) >> channel[2].wave_shift;
+	
+					//Scale waveform to S16 audio stream
+					stream[x] = -32768 + (4369 * wave_ram_data);
+				}
+
+				//Grab wave RAM step data for odd steps
+				else
+				{
+					u32 address = 0xFF30 + (ram_count/2);
+					u8 wave_ram_data = (mem_link->memory_map[address] & 0xF) >> channel[2].wave_shift;
+	
+					//Scale waveform to S16 audio stream
+					stream[x] = -32768 + (4369 * wave_ram_data);
+				}
+			}
+
+			//Continuously generate sound if necessary
+			else if((channel[2].sample_length == 0) && (channel[2].duration == 5000)) { channel[2].sample_length = (channel[2].duration * 44100)/1000; }
+
+			//Or stop sound after duration has been met
+			else { channel[2].sample_length = 0; stream[x] = -32768; channel[2].playing = false; }
+		}
+	}
+
+	//Otherwise, generate silence
+	else 
+	{
+		for(int x = 0; x < length; x++) { stream[x] = -32768; }
+	}
+}
+
 /****** Execute APU operations ******/
 void APU::step()
 {
@@ -376,6 +513,11 @@ void APU::step()
 			case 0xFF19:
 				play_channel_2();
 				break;
+
+			//Try to play Sound Channel 3
+			case 0xFF1E:
+				play_channel_3();
+				break;
 		}
 	}
 }				
@@ -388,11 +530,14 @@ void audio_callback(void* _apu, u8 *_stream, int _length)
 
 	s16 channel_1_stream[length];
 	s16 channel_2_stream[length];
+	s16 channel_3_stream[length];
 
 	APU* apu_link = (APU*) _apu;
 	apu_link->generate_channel_1_samples(channel_1_stream, length);
 	apu_link->generate_channel_2_samples(channel_2_stream, length);
+	apu_link->generate_channel_3_samples(channel_3_stream, length);
 
 	SDL_MixAudio((u8*)stream, (u8*)channel_1_stream, length*2, SDL_MIX_MAXVOLUME/16);
 	SDL_MixAudio((u8*)stream, (u8*)channel_2_stream, length*2, SDL_MIX_MAXVOLUME/16);
+	SDL_MixAudio((u8*)stream, (u8*)channel_3_stream, length*2, SDL_MIX_MAXVOLUME/16);
 }
