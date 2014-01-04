@@ -22,6 +22,7 @@ struct voice
 	u32 freq_dist;
 	int sample_length;
 	double frequency;
+	u16 raw_frequency;
 	u32 duration;
 	u32 volume;
 	bool playing;

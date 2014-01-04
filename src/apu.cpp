@@ -82,19 +82,28 @@ void APU::update_channel_1(u16 update_addr)
 	{
 		//Volume & Envelope
 		case 0xFF12:
-			u8 current_step = channel[0].envelope_step;
-			u8 next_step = (mem_link->memory_map[0xFF12] & 0x07) ? 1 : 0;
-
-			//Envelope timer is not reset unless sound is initializes
-			//Envelope timer does start if it is turned off at first, but turned on after sound initializes
-			if((current_step == 0) && (next_step != 0)) 
 			{
-				channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
-				channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
-				channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
-				channel[0].envelope_counter = 0; 
+				u8 current_step = channel[0].envelope_step;
+				u8 next_step = (mem_link->memory_map[0xFF12] & 0x07) ? 1 : 0;
+
+				//Envelope timer is not reset unless sound is initializes
+				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
+				if((current_step == 0) && (next_step != 0)) 
+				{
+					channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
+					channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
+					channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
+					channel[0].envelope_counter = 0; 
+				}
 			}
-			break; 
+			break;
+
+		//Frequency -  Low 8-bits
+		case 0xFF13:
+			channel[0].raw_frequency &= 0x700;
+			channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
+			channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+			break;
 	}
 }			
 
@@ -147,11 +156,11 @@ void APU::play_channel_1()
 		channel[0].sample_length = (channel[0].duration * 44100)/1000;
 
 		//Frequency
-		u32 frequency = (mem_link->memory_map[0xFF14] & 0x7);
-		frequency <<= 8;
-		frequency |= mem_link->memory_map[0xFF13];
-		frequency = (frequency & 0x7FF);
-		channel[0].frequency = 4194304.0/(32 * (2048-frequency));
+		channel[0].raw_frequency = (mem_link->memory_map[0xFF14] & 0x7);
+		channel[0].raw_frequency <<= 8;
+		channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
+		channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
+		channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
 			
 		//Volume & Envelope
 		channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
