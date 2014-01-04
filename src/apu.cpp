@@ -75,6 +75,29 @@ APU::APU()
 /****** APU Deconstructor ******/
 APU::~APU() { }
 
+/****** Update GB sound channel 1 ******/
+void APU::update_channel_1(u16 update_addr)
+{
+	switch(update_addr)
+	{
+		//Volume & Envelope
+		case 0xFF12:
+			u8 current_step = channel[0].envelope_step;
+			u8 next_step = (mem_link->memory_map[0xFF12] & 0x07) ? 1 : 0;
+
+			//Envelope timer is not reset unless sound is initializes
+			//Envelope timer does start if it is turned off at first, but turned on after sound initializes
+			if((current_step == 0) && (next_step != 0)) 
+			{
+				channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
+				channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
+				channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
+				channel[0].envelope_counter = 0; 
+			}
+			break; 
+	}
+}			
+
 /****** Play GB sound channel 1 - Square wave generator 1 ******/
 void APU::play_channel_1()
 {
@@ -139,10 +162,6 @@ void APU::play_channel_1()
 		channel[0].sweep_direction = (mem_link->memory_map[0xFF10] & 0x08) ? 1 : 0;
 		channel[0].sweep_time = ((mem_link->memory_map[0xFF10] >> 4) & 0x7);
 		channel[0].sweep_step = (mem_link->memory_map[0xFF10] & 0x7);
-
-		//std::cout<<"S1 Play\n";
-		//std::cout<<"S1 Freq : " << channel[0].frequency << "\n";
-		//std::cout<<"S1 Duration : " << channel[0].duration << "\n\n\n";
 	} 
 }
 
@@ -280,7 +299,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 				{
 					channel[0].envelope_counter++;
 
-					if(channel[0].envelope_counter % ((44100/64) * channel[0].envelope_step) == 0) 
+					if(channel[0].envelope_counter >= ((44100.0/64) * channel[0].envelope_step)) 
 					{		
 						//Decrease volume
 						if((channel[0].envelope_direction == 0) && (channel[0].volume >= 1)) { channel[0].volume--; }
@@ -504,6 +523,14 @@ void APU::step()
 
 		switch(mem_link->apu_update_addr)
 		{
+			//Update Sound Channel 1
+			case 0xFF10:
+			case 0xFF11:
+			case 0xFF12:
+			case 0xFF13:
+				update_channel_1(mem_link->apu_update_addr);
+				break;
+
 			//Try to play Sound Channel 1
 			case 0xFF14:
 				play_channel_1();

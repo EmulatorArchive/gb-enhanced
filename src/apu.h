@@ -58,6 +58,7 @@ class APU
 	~APU();
 
 	void generate_channel_1_samples(s16* stream, int length);
+	void update_channel_1(u16 update_addr);
 	void play_channel_1();
 
 	void generate_channel_2_samples(s16* stream, int length);
