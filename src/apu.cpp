@@ -100,9 +100,13 @@ void APU::update_channel_1(u16 update_addr)
 
 		//Frequency -  Low 8-bits
 		case 0xFF13:
-			channel[0].raw_frequency &= 0x700;
-			channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
-			channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+			//Frequency will not change when sweep function is active
+			if(channel[0].sweep_time != 0)
+			{
+				channel[0].raw_frequency &= 0x700;
+				channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
+				channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+			}
 			break;
 	}
 }			
