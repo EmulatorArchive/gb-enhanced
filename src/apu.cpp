@@ -101,7 +101,7 @@ void APU::update_channel_1(u16 update_addr)
 		//Frequency -  Low 8-bits
 		case 0xFF13:
 			//Frequency will not change when sweep function is active
-			if(channel[0].sweep_time != 0)
+			if(channel[0].sweep_time == 0)
 			{
 				channel[0].raw_frequency &= 0x700;
 				channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
@@ -273,34 +273,40 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 				{
 					channel[0].sweep_counter++;
 
-					if(channel[0].sweep_counter % ((44100/128) * channel[0].sweep_time) == 0)
+					if(channel[0].sweep_counter >= ((44100/128) * channel[0].sweep_time))
 					{
+						int pre_calc = 0;
+
 						//Increase frequency
 						if(channel[0].sweep_direction == 0)
 						{
-							double pre_calc;
-							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].frequency/(2 << (channel[0].sweep_step - 1))); }
-							else { pre_calc = (channel[0].frequency); }
+							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].raw_frequency >> channel[0].sweep_step); }
 
 							//When frequency is greater than 131KHz, stop sound - reset NR52 in future
-							if((channel[0].frequency + pre_calc) >= 2048) 
+							if((channel[0].raw_frequency + pre_calc) >= 0x800) 
 							{ 
 								channel[0].volume = channel[0].sweep_step = channel[0].envelope_step = channel[0].sweep_time = 0; 
 								channel[0].playing = false; 
 							}
 	
-							else { channel[0].frequency += pre_calc; }
+							else 
+							{ 
+								channel[0].raw_frequency += pre_calc;
+								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+							}
 						}
 
 						//Decrease frequency
 						else if(channel[0].sweep_direction == 1)
 						{
-							double pre_calc;
-							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].frequency/(2 << (channel[0].sweep_step - 1))); }
-							else { pre_calc = (channel[0].frequency); }
+							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].raw_frequency >> channel[0].sweep_step); }
 
 							//Only sweep down when result of frequency change is greater than zero
-							if((channel[0].frequency - pre_calc) >= 0) { channel[0].frequency -= pre_calc; }
+							if((channel[0].frequency - pre_calc) >= 0) 
+							{ 
+								channel[0].raw_frequency -= pre_calc;
+								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+							}
 						}
 
 						channel[0].sweep_counter = 0;
