@@ -109,6 +109,38 @@ void APU::update_channel_1(u16 update_addr)
 			}
 			break;
 	}
+}
+
+/****** Update GB sound channel 2 ******/
+void APU::update_channel_2(u16 update_addr)
+{
+	switch(update_addr)
+	{
+		//Volume & Envelope
+		case 0xFF17:
+			{
+				u8 current_step = channel[1].envelope_step;
+				u8 next_step = (mem_link->memory_map[0xFF17] & 0x07) ? 1 : 0;
+
+				//Envelope timer is not reset unless sound is initializes
+				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
+				if((current_step == 0) && (next_step != 0)) 
+				{
+					channel[1].volume = (mem_link->memory_map[0xFF17] >> 4);
+					channel[1].envelope_direction = (mem_link->memory_map[0xFF17] & 0x08) ? 1 : 0;
+					channel[1].envelope_step = (mem_link->memory_map[0xFF17] & 0x07);
+					channel[1].envelope_counter = 0; 
+				}
+			}
+			break;
+
+		//Frequency -  Low 8-bits
+		case 0xFF18:
+			channel[1].raw_frequency &= 0x700;
+			channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
+			channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
+			break;
+	}
 }			
 
 /****** Play GB sound channel 1 - Square wave generator 1 ******/
@@ -228,11 +260,11 @@ void APU::play_channel_2()
 		channel[1].sample_length = (channel[1].duration * 44100)/1000;
 
 		//Frequency
-		u32 frequency = mem_link->memory_map[0xFF19];
-		frequency <<= 8;
-		frequency |= mem_link->memory_map[0xFF18];
-		frequency = (frequency & 0x7FF);
-		channel[1].frequency = 4194304.0/(32 * (2048-frequency));
+		channel[1].raw_frequency = (mem_link->memory_map[0xFF19] & 0x7);
+		channel[1].raw_frequency <<= 8;
+		channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
+		channel[1].raw_frequency = (channel[1].raw_frequency & 0x7FF);
+		channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
 			
 		//Volume & Envelope
 		channel[1].volume = (mem_link->memory_map[0xFF17] >> 4);
@@ -380,15 +412,16 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 			if(channel[1].sample_length > 0)
 			{
 				channel[1].freq_dist++;
-				channel[1].envelope_counter++;
 
 				//Process audio envelope
 				if(channel[1].envelope_step >= 1)
 				{
-					if(channel[1].envelope_counter % ((44100/64) * channel[1].envelope_step) == 0) 
+					channel[1].envelope_counter++;
+
+					if(channel[1].envelope_counter >= ((44100.0/64) * channel[1].envelope_step)) 
 					{		
 						//Decrease volume
-						if((channel[1].envelope_direction == 0) && (channel[0].volume >= 1)) { channel[1].volume--; }
+						if((channel[1].envelope_direction == 0) && (channel[1].volume >= 1)) { channel[1].volume--; }
 				
 						//Increase volume
 						else if((channel[1].envelope_direction == 1) && (channel[1].volume < 0xF)) { channel[1].volume++; }
@@ -561,6 +594,13 @@ void APU::step()
 			//Try to play Sound Channel 1
 			case 0xFF14:
 				play_channel_1();
+				break;
+
+			//Update Sound Channel 2
+			case 0xFF16:
+			case 0xFF17:
+			case 0xFF18:
+				update_channel_2(mem_link->apu_update_addr);
 				break;
 			
 			//Try to play Sound Channel 2
