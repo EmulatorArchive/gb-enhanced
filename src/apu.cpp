@@ -17,7 +17,6 @@
 /****** APU Constructor ******/
 APU::APU()
 {
-
 	mem_link = NULL;
 
 	//Reset voices
@@ -41,6 +40,7 @@ APU::APU()
 		channel[x].sweep_step = 0;
 		channel[x].sweep_counter = 0;
 		channel[x].sweep_time = 0;
+		channel[x].sweep_on = false;
 
 		channel[x].wave_step = 0;
 		channel[x].wave_shift = 0;
@@ -101,7 +101,7 @@ void APU::update_channel_1(u16 update_addr)
 		//Frequency -  Low 8-bits
 		case 0xFF13:
 			//Frequency will not change when sweep function is active
-			if(channel[0].sweep_time == 0)
+			if(!channel[0].sweep_on)
 			{
 				channel[0].raw_frequency &= 0x700;
 				channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
@@ -118,7 +118,6 @@ void APU::play_channel_1()
 	if(((mem_link->memory_map[0xFF25] & 0x1) || (mem_link->memory_map[0xFF25] & 0x10)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
 	{
 		channel[0].freq_dist = 0;
-		channel[0].frequency = 0;
 		channel[0].duration = 0;
 		channel[0].playing = true;
 		channel[0].envelope_counter = 0;
@@ -165,7 +164,7 @@ void APU::play_channel_1()
 		channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
 		channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
 		channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
-			
+
 		//Volume & Envelope
 		channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
 		channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
@@ -175,6 +174,9 @@ void APU::play_channel_1()
 		channel[0].sweep_direction = (mem_link->memory_map[0xFF10] & 0x08) ? 1 : 0;
 		channel[0].sweep_time = ((mem_link->memory_map[0xFF10] >> 4) & 0x7);
 		channel[0].sweep_step = (mem_link->memory_map[0xFF10] & 0x7);
+
+		if((channel[0].sweep_step != 0) || (channel[0].sweep_time != 0)) { channel[0].sweep_on = true; }
+		else { channel[0].sweep_on = false; }
 	} 
 }
 
@@ -273,7 +275,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 				{
 					channel[0].sweep_counter++;
 
-					if(channel[0].sweep_counter >= ((44100/128) * channel[0].sweep_time))
+					if(channel[0].sweep_counter >= ((44100.0/128) * channel[0].sweep_time))
 					{
 						int pre_calc = 0;
 
@@ -293,6 +295,9 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 							{ 
 								channel[0].raw_frequency += pre_calc;
 								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+								mem_link->memory_map[0xFF13] = (channel[0].raw_frequency & 0xFF);
+								mem_link->memory_map[0xFF14] &= 0xC0; 
+								mem_link->memory_map[0xFF14] |= ((channel[0].raw_frequency >> 8) & 0x7);
 							}
 						}
 
@@ -306,6 +311,9 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 							{ 
 								channel[0].raw_frequency -= pre_calc;
 								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+								mem_link->memory_map[0xFF13] = (channel[0].raw_frequency & 0xFF);
+								mem_link->memory_map[0xFF14] &= 0xC0;
+								mem_link->memory_map[0xFF14] |= ((channel[0].raw_frequency >> 8) & 0x7);
 							}
 						}
 

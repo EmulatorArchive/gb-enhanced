@@ -38,6 +38,7 @@ struct voice
 	u32 sweep_step;
 	u32 sweep_time;
 	u32 sweep_counter;
+	bool sweep_on;
 
 	double wave_step;
 	u8 wave_shift;
