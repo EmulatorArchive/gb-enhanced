@@ -80,6 +80,32 @@ void APU::update_channel_1(u16 update_addr)
 {
 	switch(update_addr)
 	{
+		//Duty Cycle
+		case 0xFF11:
+			switch((mem_link->memory_map[0xFF11] >> 6))
+			{
+				case 0x0:
+					channel[0].duty_cycle_start = 1;
+					channel[0].duty_cycle_end = 2;
+					break;
+
+				case 0x1:
+					channel[0].duty_cycle_start = 0;
+					channel[0].duty_cycle_end = 2;
+					break;
+
+				case 0x2:
+					channel[0].duty_cycle_start = 0;
+					channel[0].duty_cycle_end = 4;
+					break;
+
+				case 0x3:
+					channel[0].duty_cycle_start = 2;
+					channel[0].duty_cycle_end = 8;
+					break;
+			}
+			break;
+
 		//Volume & Envelope
 		case 0xFF12:
 			{
@@ -116,6 +142,32 @@ void APU::update_channel_2(u16 update_addr)
 {
 	switch(update_addr)
 	{
+		//Duty Cycle
+		case 0xFF16:
+			switch((mem_link->memory_map[0xFF16] >> 6))
+			{
+				case 0x0:
+					channel[1].duty_cycle_start = 1;
+					channel[1].duty_cycle_end = 2;
+					break;
+
+				case 0x1:
+					channel[1].duty_cycle_start = 0;
+					channel[1].duty_cycle_end = 2;
+					break;
+
+				case 0x2:
+					channel[1].duty_cycle_start = 0;
+					channel[1].duty_cycle_end = 4;
+					break;
+
+				case 0x3:
+					channel[1].duty_cycle_start = 2;
+					channel[1].duty_cycle_end = 8;
+					break;
+			}
+			break;
+
 		//Volume & Envelope
 		case 0xFF17:
 			{
@@ -218,6 +270,7 @@ void APU::play_channel_2()
 	//Play sound only if Channel 2's Status is ON and Trigger bit is set
 	if(((mem_link->memory_map[0xFF25] & 0x2) || (mem_link->memory_map[0xFF25] & 0x20)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
 	{
+		std::cout<<"Play 2 \n";
 		channel[1].freq_dist = 0;
 		channel[1].frequency = 0;
 		channel[1].duration = 0;
