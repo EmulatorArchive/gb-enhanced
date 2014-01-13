@@ -134,6 +134,17 @@ void APU::update_channel_1(u16 update_addr)
 				channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
 			}
 			break;
+
+		//Frequency - High 3-bits & Trigger
+		case 0xFF14:
+			channel[0].raw_frequency = (mem_link->memory_map[0xFF14] & 0x7);
+			channel[0].raw_frequency <<= 8;
+			channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
+			channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
+			channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+
+			if(mem_link->memory_map[0xFF14] & 0x80) { play_channel_1(); }
+			break;
 	}
 }
 
@@ -192,138 +203,125 @@ void APU::update_channel_2(u16 update_addr)
 			channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
 			channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
 			break;
+
+		//Frequency - High 3-bits & Trigger
+		case 0xFF19:
+			channel[1].raw_frequency = (mem_link->memory_map[0xFF19] & 0x7);
+			channel[1].raw_frequency <<= 8;
+			channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
+			channel[1].raw_frequency = (channel[1].raw_frequency & 0x7FF);
+			channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
+
+			if(mem_link->memory_map[0xFF19] & 0x80) { play_channel_2(); }
+			break;
 	}
 }			
 
 /****** Play GB sound channel 1 - Square wave generator 1 ******/
 void APU::play_channel_1()
 {
-	//Play sound only if Channel 1's Status is ON and Trigger bit is set
-	if(((mem_link->memory_map[0xFF25] & 0x1) || (mem_link->memory_map[0xFF25] & 0x10)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
+	channel[0].freq_dist = 0;
+	channel[0].duration = 0;
+	channel[0].playing = true;
+	channel[0].envelope_counter = 0;
+	channel[0].sweep_counter = 0;
+
+	//Determine duty cycle in 8ths
+	switch((mem_link->memory_map[0xFF11] >> 6))
 	{
-		channel[0].freq_dist = 0;
-		channel[0].duration = 0;
-		channel[0].playing = true;
-		channel[0].envelope_counter = 0;
-		channel[0].sweep_counter = 0;
+		case 0x0:
+			channel[0].duty_cycle_start = 1;
+			channel[0].duty_cycle_end = 2;
+			break;
 
-		//Determine duty cycle in 8ths
-		switch((mem_link->memory_map[0xFF11] >> 6))
-		{
-			case 0x0:
-				channel[0].duty_cycle_start = 1;
-				channel[0].duty_cycle_end = 2;
-				break;
+		case 0x1:
+			channel[0].duty_cycle_start = 0;
+			channel[0].duty_cycle_end = 2;
+			break;
 
-			case 0x1:
-				channel[0].duty_cycle_start = 0;
-				channel[0].duty_cycle_end = 2;
-				break;
+		case 0x2:
+			channel[0].duty_cycle_start = 0;
+			channel[0].duty_cycle_end = 4;
+			break;
 
-			case 0x2:
-				channel[0].duty_cycle_start = 0;
-				channel[0].duty_cycle_end = 4;
-				break;
+		case 0x3:
+			channel[0].duty_cycle_start = 2;
+			channel[0].duty_cycle_end = 8;
+			break;
+	}
 
-			case 0x3:
-				channel[0].duty_cycle_start = 2;
-				channel[0].duty_cycle_end = 8;
-				break;
-		}
-
-		//Duration
-		if((mem_link->memory_map[0xFF14] & 0x40) == 0) { channel[0].duration = 5000; }
+	//Duration
+	if((mem_link->memory_map[0xFF14] & 0x40) == 0) { channel[0].duration = 5000; }
 		
-		else 
-		{
-			channel[0].duration = (mem_link->memory_map[0xFF11] & 0x3F);
-			channel[0].duration = 1000/(256/(64 - channel[0].duration));
-		}
+	else 
+	{
+		channel[0].duration = (mem_link->memory_map[0xFF11] & 0x3F);
+		channel[0].duration = 1000/(256/(64 - channel[0].duration));
+	}
 
-		channel[0].sample_length = (channel[0].duration * 44100)/1000;
+	channel[0].sample_length = (channel[0].duration * 44100)/1000;
 
-		//Frequency
-		channel[0].raw_frequency = (mem_link->memory_map[0xFF14] & 0x7);
-		channel[0].raw_frequency <<= 8;
-		channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
-		channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
-		channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+	//Volume & Envelope
+	channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
+	channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
+	channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
 
-		//Volume & Envelope
-		channel[0].volume = (mem_link->memory_map[0xFF12] >> 4);
-		channel[0].envelope_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
-		channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
+	//Sweep
+	channel[0].sweep_direction = (mem_link->memory_map[0xFF10] & 0x08) ? 1 : 0;
+	channel[0].sweep_time = ((mem_link->memory_map[0xFF10] >> 4) & 0x7);
+	channel[0].sweep_step = (mem_link->memory_map[0xFF10] & 0x7);
 
-		//Sweep
-		channel[0].sweep_direction = (mem_link->memory_map[0xFF10] & 0x08) ? 1 : 0;
-		channel[0].sweep_time = ((mem_link->memory_map[0xFF10] >> 4) & 0x7);
-		channel[0].sweep_step = (mem_link->memory_map[0xFF10] & 0x7);
-
-		if((channel[0].sweep_step != 0) || (channel[0].sweep_time != 0)) { channel[0].sweep_on = true; }
-		else { channel[0].sweep_on = false; }
-	} 
+	if((channel[0].sweep_step != 0) || (channel[0].sweep_time != 0)) { channel[0].sweep_on = true; }
+	else { channel[0].sweep_on = false; }
 }
 
 /****** Play GB sound channel 2 - Square wave generator 2 ******/
 void APU::play_channel_2()
 {
-	//Play sound only if Channel 2's Status is ON and Trigger bit is set
-	if(((mem_link->memory_map[0xFF25] & 0x2) || (mem_link->memory_map[0xFF25] & 0x20)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
+	channel[1].freq_dist = 0;
+	channel[1].duration = 0;
+	channel[1].playing = true;
+	channel[1].envelope_counter = 0;
+
+	//Determine duty cycle in 8ths
+	switch((mem_link->memory_map[0xFF16] >> 6))
 	{
-		std::cout<<"Play 2 \n";
-		channel[1].freq_dist = 0;
-		channel[1].frequency = 0;
-		channel[1].duration = 0;
-		channel[1].playing = true;
-		channel[1].envelope_counter = 0;
+		case 0x0:
+			channel[1].duty_cycle_start = 1;
+			channel[1].duty_cycle_end = 2;
+			break;
 
-		//Determine duty cycle in 8ths
-		switch((mem_link->memory_map[0xFF16] >> 6))
-		{
-			case 0x0:
-				channel[1].duty_cycle_start = 1;
-				channel[1].duty_cycle_end = 2;
-				break;
+		case 0x1:
+			channel[1].duty_cycle_start = 0;
+			channel[1].duty_cycle_end = 2;
+			break;
 
-			case 0x1:
-				channel[1].duty_cycle_start = 0;
-				channel[1].duty_cycle_end = 2;
-				break;
+		case 0x2:
+			channel[1].duty_cycle_start = 0;
+			channel[1].duty_cycle_end = 4;
+			break;
 
-			case 0x2:
-				channel[1].duty_cycle_start = 0;
-				channel[1].duty_cycle_end = 4;
-				break;
-
-			case 0x3:
-				channel[1].duty_cycle_start = 2;
-				channel[1].duty_cycle_end = 8;
-				break;
-		}
-
-		//Duration
-		if((mem_link->memory_map[0xFF19] & 0x40) == 0) { channel[1].duration = 5000; }
-		
-		else 
-		{
-			channel[1].duration = (mem_link->memory_map[0xFF16] & 0x3F);
-			channel[1].duration = 1000/(256/(64 - channel[1].duration));
-		}
-
-		channel[1].sample_length = (channel[1].duration * 44100)/1000;
-
-		//Frequency
-		channel[1].raw_frequency = (mem_link->memory_map[0xFF19] & 0x7);
-		channel[1].raw_frequency <<= 8;
-		channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
-		channel[1].raw_frequency = (channel[1].raw_frequency & 0x7FF);
-		channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
-			
-		//Volume & Envelope
-		channel[1].volume = (mem_link->memory_map[0xFF17] >> 4);
-		channel[1].envelope_direction = (mem_link->memory_map[0xFF17] & 0x08) ? 1 : 0;
-		channel[1].envelope_step = (mem_link->memory_map[0xFF17] & 0x07);
+		case 0x3:
+			channel[1].duty_cycle_start = 2;
+			channel[1].duty_cycle_end = 8;
+			break;
 	}
+
+	//Duration
+	if((mem_link->memory_map[0xFF19] & 0x40) == 0) { channel[1].duration = 5000; }
+		
+	else 
+	{
+		channel[1].duration = (mem_link->memory_map[0xFF16] & 0x3F);
+		channel[1].duration = 1000/(256/(64 - channel[1].duration));
+	}
+
+	channel[1].sample_length = (channel[1].duration * 44100)/1000;
+			
+	//Volume & Envelope
+	channel[1].volume = (mem_link->memory_map[0xFF17] >> 4);
+	channel[1].envelope_direction = (mem_link->memory_map[0xFF17] & 0x08) ? 1 : 0;
+	channel[1].envelope_step = (mem_link->memory_map[0xFF17] & 0x07);
 }
 
 /****** Play GB sound channel 3 - RAM Waveform ******/
@@ -344,8 +342,12 @@ void APU::play_channel_3()
 /******* Generate samples for GB sound channel 1 ******/
 void APU::generate_channel_1_samples(s16* stream, int length)
 {
+	bool output_status = false;
+
+	if((mem_link->memory_map[0xFF25] & 0x1) || (mem_link->memory_map[0xFF25] & 0x10)) { output_status = true; }
+	
 	//Process samples if playing
-	if(channel[0].playing)
+	if((channel[0].playing) && (output_status))
 	{
 		int freq_samples = 44100/channel[0].frequency;
 
@@ -455,8 +457,12 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 /******* Generate samples for GB sound channel 2 ******/
 void APU::generate_channel_2_samples(s16* stream, int length)
 {
+	bool output_status = false;
+
+	if((mem_link->memory_map[0xFF25] & 0x2) || (mem_link->memory_map[0xFF25] & 0x20)) { output_status = true; }
+
 	//Process samples if playing
-	if(channel[1].playing)
+	if((channel[1].playing) && (output_status))
 	{
 		int freq_samples = 44100/channel[1].frequency;
 
@@ -641,24 +647,16 @@ void APU::step()
 			case 0xFF11:
 			case 0xFF12:
 			case 0xFF13:
-				update_channel_1(mem_link->apu_update_addr);
-				break;
-
-			//Try to play Sound Channel 1
 			case 0xFF14:
-				play_channel_1();
+				update_channel_1(mem_link->apu_update_addr);
 				break;
 
 			//Update Sound Channel 2
 			case 0xFF16:
 			case 0xFF17:
 			case 0xFF18:
-				update_channel_2(mem_link->apu_update_addr);
-				break;
-			
-			//Try to play Sound Channel 2
 			case 0xFF19:
-				play_channel_2();
+				update_channel_2(mem_link->apu_update_addr);
 				break;
 
 			//Try to play Sound Channel 3
