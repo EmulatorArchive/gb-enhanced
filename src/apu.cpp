@@ -632,8 +632,13 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 /******* Generate samples for GB sound channel 3 ******/
 void APU::generate_channel_3_samples(s16* stream, int length)
 {
+	bool output_status = false;
+
+	if((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) { output_status = true; }
+	if(!(mem_link->memory_map[0xFF1A] & 0x80)) { output_status = false; }	
+
 	//Process samples if playing
-	if(channel[2].playing)
+	if((channel[2].playing) && (output_status))
 	{
 		//Duration
 		if((mem_link->memory_map[0xFF1E] & 0x40) == 0) 
