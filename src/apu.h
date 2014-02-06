@@ -42,6 +42,12 @@ struct voice
 
 	double wave_step;
 	u8 wave_shift;
+
+	double noise_dividing_ratio;
+	u32 noise_prescalar;
+	u8 noise_stages;
+	u8 noise_7_stage_lsfr;
+	u16 noise_15_stage_lsfr;
 };
 
 class APU
@@ -69,6 +75,10 @@ class APU
 
 	void generate_channel_3_samples(s16* stream, int length);
 	void play_channel_3();
+
+	void generate_channel_4_samples(s16* stream, int length);
+	void update_channel_4(u16 update_addr);
+	void play_channel_4();
 
 	void step();
 };

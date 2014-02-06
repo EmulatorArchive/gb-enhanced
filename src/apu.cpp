@@ -44,6 +44,12 @@ APU::APU()
 
 		channel[x].wave_step = 0;
 		channel[x].wave_shift = 0;
+
+		channel[x].noise_dividing_ratio = 1;
+		channel[x].noise_prescalar = 1;
+		channel[x].noise_stages = 0;
+		channel[x].noise_7_stage_lsfr = 0x40;
+		channel[x].noise_15_stage_lsfr = 0x4000;
 	}
 
 	//Initialize SDL audio
@@ -217,6 +223,62 @@ void APU::update_channel_2(u16 update_addr)
 	}
 }			
 
+/****** Update GB sound channel 4 ******/
+void APU::update_channel_4(u16 update_addr)
+{
+	switch(update_addr)
+	{
+		//Volume & Envelope
+		case 0xFF21:
+			{
+				u8 current_step = channel[3].envelope_step;
+				u8 next_step = (mem_link->memory_map[0xFF21] & 0x07) ? 1 : 0;
+
+				//Envelope timer is not reset unless sound is initializes
+				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
+				if((current_step == 0) && (next_step != 0)) 
+				{
+					channel[3].volume = (mem_link->memory_map[0xFF21] >> 4);
+					channel[3].envelope_direction = (mem_link->memory_map[0xFF21] & 0x08) ? 1 : 0;
+					channel[3].envelope_step = (mem_link->memory_map[0xFF21] & 0x07);
+					channel[3].envelope_counter = 0; 
+				}
+			}
+			break;
+
+		//Dividing ratio, Prescalar, & LSFR Stages
+		case 0xFF22:
+			//Dividing ratio
+			switch(mem_link->memory_map[0xFF22] & 0x7)
+			{
+				case 0x0: channel[3].noise_dividing_ratio = 0.5; break;
+				case 0x1: channel[3].noise_dividing_ratio = 1.0; break;
+				case 0x2: channel[3].noise_dividing_ratio = 2.0; break;
+				case 0x3: channel[3].noise_dividing_ratio = 3.0; break;
+				case 0x4: channel[3].noise_dividing_ratio = 4.0; break;
+				case 0x5: channel[3].noise_dividing_ratio = 5.0; break;
+				case 0x6: channel[3].noise_dividing_ratio = 6.0; break;
+				case 0x7: channel[3].noise_dividing_ratio = 7.0; break;
+			}
+
+			//Prescalar
+			channel[3].noise_prescalar = 2 << (mem_link->memory_map[0xFF22] >> 4);
+
+			//LSFR Stages
+			if(mem_link->memory_map[0xFF22] & 0x8) { channel[3].noise_stages = 7; }
+			else { channel[3].noise_stages = 15; }
+
+			channel[3].frequency = (524288/channel[3].noise_dividing_ratio)/channel[3].noise_prescalar;
+			break;
+
+		//Trigger
+		case 0xFF23:
+			if(mem_link->memory_map[0xFF23] & 0x80) { play_channel_4(); }
+			break;
+	}
+}
+
+
 /****** Play GB sound channel 1 - Square wave generator 1 ******/
 void APU::play_channel_1()
 {
@@ -330,13 +392,62 @@ void APU::play_channel_3()
 	//Play sound only if Channel 3's Status is ON and Trigger bit is set
 	if(((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
 	{
-		//Frequency, duration, wave RAM, etc, can dynamically changed
+		//Frequency, duration, wave RAM, etc, can dynamically be changed
 		//The rest of the info should be determined upon sample generation
 		channel[2].freq_dist = 0;
 		channel[2].frequency = 0;
 		channel[2].duration = 0;
 		channel[2].playing = true;
 	}
+}
+
+/****** Play GB sound channel 4 - Noise ******/
+void APU::play_channel_4()
+{
+	channel[3].freq_dist = 0;
+	channel[3].duration = 0;
+	channel[3].playing = true;
+	channel[3].envelope_counter = 0;
+	channel[3].noise_7_stage_lsfr = 0x40;
+	channel[3].noise_15_stage_lsfr = 0x4000;
+
+	//Duration
+	if((mem_link->memory_map[0xFF23] & 0x40) == 0) { channel[3].duration = 5000; }
+		
+	else 
+	{
+		channel[3].duration = (mem_link->memory_map[0xFF20] & 0x3F);
+		channel[3].duration = 1000/(256/(64 - channel[3].duration));
+	}
+
+	channel[3].sample_length = (channel[3].duration * 44100)/1000;
+
+	//Volume & Envelope
+	channel[3].volume = (mem_link->memory_map[0xFF21] >> 4);
+	channel[3].envelope_direction = (mem_link->memory_map[0xFF21] & 0x08) ? 1 : 0;
+	channel[3].envelope_step = (mem_link->memory_map[0xFF21] & 0x07);
+
+	//Dividing ratio
+	switch(mem_link->memory_map[0xFF22] & 0x7)
+	{
+		case 0x0: channel[3].noise_dividing_ratio = 0.5; break;
+		case 0x1: channel[3].noise_dividing_ratio = 1.0; break;
+		case 0x2: channel[3].noise_dividing_ratio = 2.0; break;
+		case 0x3: channel[3].noise_dividing_ratio = 3.0; break;
+		case 0x4: channel[3].noise_dividing_ratio = 4.0; break;
+		case 0x5: channel[3].noise_dividing_ratio = 5.0; break;
+		case 0x6: channel[3].noise_dividing_ratio = 6.0; break;
+		case 0x7: channel[3].noise_dividing_ratio = 7.0; break;
+	}
+
+	//Prescalar
+	channel[3].noise_prescalar = 2 << ((mem_link->memory_map[0xFF22] >> 4) & 0x7);
+
+	//LSFR Stages
+	if(mem_link->memory_map[0xFF22] & 0x8) { channel[3].noise_stages = 7; }
+	else { channel[3].noise_stages = 15; }
+
+	channel[3].frequency = (524288/channel[3].noise_dividing_ratio)/channel[3].noise_prescalar;
 }
 
 /******* Generate samples for GB sound channel 1 ******/
@@ -632,6 +743,104 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 	}
 }
 
+/******* Generate samples for GB sound channel 4 ******/
+void APU::generate_channel_4_samples(s16* stream, int length)
+{
+	bool output_status = false;
+
+	if((mem_link->memory_map[0xFF25] & 0x8) || (mem_link->memory_map[0xFF25] & 0x80)) { output_status = true; }
+	
+	//Process samples if playing
+	if((channel[3].playing) && (output_status))
+	{
+		double samples_per_freq = channel[3].frequency/44100;
+		double samples_per_freq_counter = 0;
+		u32 lsfr_runs = 0;
+
+		for(int x = 0; x < length; x++, channel[3].sample_length--)
+		{
+			if(channel[3].sample_length > 0)
+			{
+				channel[3].freq_dist++;
+				samples_per_freq_counter += samples_per_freq;
+
+				//Process audio envelope
+				if(channel[3].envelope_step >= 1)
+				{
+					channel[3].envelope_counter++;
+
+					if(channel[3].envelope_counter >= ((44100.0/64) * channel[3].envelope_step)) 
+					{		
+						//Decrease volume
+						if((channel[3].envelope_direction == 0) && (channel[3].volume >= 1)) { channel[3].volume--; }
+				
+						//Increase volume
+						else if((channel[3].envelope_direction == 1) && (channel[3].volume < 0xF)) { channel[3].volume++; }
+
+						channel[3].envelope_counter = 0;
+					}
+				}
+
+				//Determine how many times to run LSFR
+				if(samples_per_freq_counter >= 1)
+				{
+					lsfr_runs = 0;
+					while(samples_per_freq_counter >= 1)
+					{
+						samples_per_freq_counter -= 1.0;
+						lsfr_runs++;
+					}
+
+					//Run LSFR
+					for(int y = 0; y < lsfr_runs; y++)
+					{
+						//7-stage
+						if(channel[3].noise_stages == 7)
+						{
+							u8 bit_0 = (channel[3].noise_7_stage_lsfr & 0x1) ? 1 : 0;
+							u8 bit_1 = (channel[3].noise_7_stage_lsfr & 0x2) ? 1 : 0;
+							u8 result = bit_0 ^ bit_1;
+							channel[3].noise_7_stage_lsfr >>= 1;
+							
+							if(result == 1) { channel[3].noise_7_stage_lsfr |= 0x40; }
+						}
+
+						//15-stage
+						else if(channel[3].noise_stages == 15)
+						{
+							u8 bit_0 = (channel[3].noise_15_stage_lsfr & 0x1) ? 1 : 0;
+							u8 bit_1 = (channel[3].noise_15_stage_lsfr & 0x2) ? 1 : 0;
+							u8 result = bit_0 ^ bit_1;
+							channel[3].noise_15_stage_lsfr >>= 1;
+							
+							if(result == 1) { channel[3].noise_15_stage_lsfr |= 0x4000; }
+						}
+					}
+				}
+
+				//Generate high wave if LSFR returns 1 from first byte and volume is not muted
+				if((channel[3].noise_stages == 15) && (channel[3].noise_15_stage_lsfr & 0x1) && (channel[3].volume >= 1)) { stream[x] = -32768 + (4369 * channel[3].volume); }
+				else if((channel[3].noise_stages == 7) && (channel[3].noise_7_stage_lsfr & 0x1) && (channel[3].volume >= 1)) { stream[x] = -32768 + (4369 * channel[3].volume); }
+
+				//Or generate low wave
+				else { stream[x] = -32768; }
+			}
+
+			//Continuously generate sound if necessary
+			else if((channel[3].sample_length == 0) && (channel[3].duration == 5000)) { channel[3].sample_length = (channel[3].duration * 44100)/1000; }
+
+			//Or stop sound after duration has been met
+			else { channel[3].sample_length = 0; stream[x] = -32768; channel[3].playing = false; }
+		}
+	}
+
+	//Otherwise, generate silence
+	else 
+	{
+		for(int x = 0; x < length; x++) { stream[x] = -32768; }
+	}
+}
+
 /****** Execute APU operations ******/
 void APU::step()
 {
@@ -663,6 +872,14 @@ void APU::step()
 			case 0xFF1E:
 				play_channel_3();
 				break;
+
+			//Update Sound Channel 4
+			case 0xFF20:
+			case 0xFF21:
+			case 0xFF22:
+			case 0xFF23:
+				update_channel_4(mem_link->apu_update_addr);
+				break;
 		}
 	}
 }				
@@ -676,13 +893,16 @@ void audio_callback(void* _apu, u8 *_stream, int _length)
 	s16 channel_1_stream[length];
 	s16 channel_2_stream[length];
 	s16 channel_3_stream[length];
+	s16 channel_4_stream[length];
 
 	APU* apu_link = (APU*) _apu;
 	apu_link->generate_channel_1_samples(channel_1_stream, length);
 	apu_link->generate_channel_2_samples(channel_2_stream, length);
 	apu_link->generate_channel_3_samples(channel_3_stream, length);
+	apu_link->generate_channel_4_samples(channel_4_stream, length);
 
 	SDL_MixAudio((u8*)stream, (u8*)channel_1_stream, length*2, SDL_MIX_MAXVOLUME/16);
 	SDL_MixAudio((u8*)stream, (u8*)channel_2_stream, length*2, SDL_MIX_MAXVOLUME/16);
 	SDL_MixAudio((u8*)stream, (u8*)channel_3_stream, length*2, SDL_MIX_MAXVOLUME/16);
+	SDL_MixAudio((u8*)stream, (u8*)channel_4_stream, length*2, SDL_MIX_MAXVOLUME/16);
 }
