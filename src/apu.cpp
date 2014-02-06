@@ -542,7 +542,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 				//Generate high wave form if duty cycle is on AND volume is not muted
 				if((channel[0].freq_dist >= (freq_samples/8) * channel[0].duty_cycle_start) && (channel[0].freq_dist < (freq_samples/8) * channel[0].duty_cycle_end) && (channel[0].volume >= 1))
 				{
-					stream[x] = (32767/16) * channel[0].volume;
+					stream[x] = -32768 + (4369 * channel[0].volume);
 				}
 
 				//Generate low wave form if duty cycle is off OR volume is muted
@@ -606,7 +606,7 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 				//Generate high wave form if duty cycle is on AND volume is not muted
 				if((channel[1].freq_dist >= (freq_samples/8) * channel[1].duty_cycle_start) && (channel[1].freq_dist < (freq_samples/8) * channel[1].duty_cycle_end) && (channel[1].volume >= 1))
 				{
-					stream[x] = (32767/16) * channel[1].volume;
+					stream[x] = -32768 + (4369 * channel[1].volume);
 				}
 
 				//Generate low wave form if duty cycle is off OR volume is muted
