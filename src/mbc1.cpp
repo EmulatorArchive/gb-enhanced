@@ -48,9 +48,14 @@ u8 MMU::mbc1_read(u16 address)
 	//Read using ROM Banking
 	if((address >= 0x4000) && (address <= 0x7FFF))
 	{
-		if((bank_mode == 0) && (((bank_bits << 5) | rom_bank) >= 2)) 
+		u8 ext_rom_bank = ((bank_bits << 5) | rom_bank);
+
+		//Ignore top 2 bits of MBC ROM select register if ROM size is 32 banks or less
+		if(memory_map[ROM_ROMSIZE] < 0x5) { ext_rom_bank &= 0x1F; }
+
+		if((bank_mode == 0) && (ext_rom_bank >= 2)) 
 		{ 
-			return read_only_bank[((bank_bits << 5) | rom_bank) - 2][address - 0x4000];
+			return read_only_bank[ext_rom_bank - 2][address - 0x4000];
 		}
 
 		else if((bank_mode == 1) && (rom_bank >= 2)) 
