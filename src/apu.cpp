@@ -505,7 +505,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].raw_frequency >> channel[0].sweep_step); }
 
 							//Only sweep down when result of frequency change is greater than zero
-							if((channel[0].frequency - pre_calc) >= 0) 
+							if((channel[0].raw_frequency - pre_calc) >= 0) 
 							{ 
 								channel[0].raw_frequency -= pre_calc;
 								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
