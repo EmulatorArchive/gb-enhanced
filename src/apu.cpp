@@ -441,7 +441,7 @@ void APU::play_channel_4()
 	}
 
 	//Prescalar
-	channel[3].noise_prescalar = 2 << ((mem_link->memory_map[0xFF22] >> 4) & 0x7);
+	channel[3].noise_prescalar = 2 << (mem_link->memory_map[0xFF22] >> 4);
 
 	//LSFR Stages
 	if(mem_link->memory_map[0xFF22] & 0x8) { channel[3].noise_stages = 7; }
