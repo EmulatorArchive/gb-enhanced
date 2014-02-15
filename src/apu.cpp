@@ -117,6 +117,8 @@ void APU::update_channel_1(u16 update_addr)
 			{
 				u8 current_step = channel[0].envelope_step;
 				u8 next_step = (mem_link->memory_map[0xFF12] & 0x07) ? 1 : 0;
+				u8 next_volume = (mem_link->memory_map[0xFF12] >> 4);
+				u8 next_direction = (mem_link->memory_map[0xFF12] & 0x08) ? 1 : 0;
 
 				//Envelope timer is not reset unless sound is initializes
 				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
@@ -127,6 +129,9 @@ void APU::update_channel_1(u16 update_addr)
 					channel[0].envelope_step = (mem_link->memory_map[0xFF12] & 0x07);
 					channel[0].envelope_counter = 0; 
 				}
+
+				//Turn off Sound Channel 1 if envelope volume is 0 and mode is subtraction
+				if((next_direction == 0) && (next_volume == 0)) { channel[0].playing = false; }
 			}
 			break;
 
@@ -190,6 +195,8 @@ void APU::update_channel_2(u16 update_addr)
 			{
 				u8 current_step = channel[1].envelope_step;
 				u8 next_step = (mem_link->memory_map[0xFF17] & 0x07) ? 1 : 0;
+				u8 next_volume = (mem_link->memory_map[0xFF17] >> 4);
+				u8 next_direction = (mem_link->memory_map[0xFF17] & 0x08) ? 1 : 0;
 
 				//Envelope timer is not reset unless sound is initializes
 				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
@@ -200,6 +207,9 @@ void APU::update_channel_2(u16 update_addr)
 					channel[1].envelope_step = (mem_link->memory_map[0xFF17] & 0x07);
 					channel[1].envelope_counter = 0; 
 				}
+
+				//Turn off Sound Channel 2 if envelope volume is 0 and mode is subtraction
+				if((next_direction == 0) && (next_volume == 0)) { channel[1].playing = false; }
 			}
 			break;
 
@@ -233,6 +243,8 @@ void APU::update_channel_4(u16 update_addr)
 			{
 				u8 current_step = channel[3].envelope_step;
 				u8 next_step = (mem_link->memory_map[0xFF21] & 0x07) ? 1 : 0;
+				u8 next_volume = (mem_link->memory_map[0xFF21] >> 4);
+				u8 next_direction = (mem_link->memory_map[0xFF21] & 0x08) ? 1 : 0;
 
 				//Envelope timer is not reset unless sound is initializes
 				//Envelope timer does start if it is turned off at first, but turned on after sound initializes
@@ -243,6 +255,9 @@ void APU::update_channel_4(u16 update_addr)
 					channel[3].envelope_step = (mem_link->memory_map[0xFF21] & 0x07);
 					channel[3].envelope_counter = 0; 
 				}
+
+				//Turn off Sound Channel 4 if envelope volume is 0 and mode is subtraction
+				if((next_direction == 0) && (next_volume == 0)) { channel[3].playing = false; }
 			}
 			break;
 
