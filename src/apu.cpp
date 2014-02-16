@@ -148,11 +148,23 @@ void APU::update_channel_1(u16 update_addr)
 
 		//Frequency - High 3-bits & Trigger
 		case 0xFF14:
-			channel[0].raw_frequency = (mem_link->memory_map[0xFF14] & 0x7);
-			channel[0].raw_frequency <<= 8;
-			channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
-			channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
-			channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+			{
+				bool update_high_frequency = true;
+
+				//Frequency will not change when sweep function is active
+				//A trigger event updates the frequency regardless though
+				if(channel[0].sweep_on) { update_high_frequency = false; }
+				if(mem_link->memory_map[0xFF14] & 0x80) { update_high_frequency = true; }
+
+				if(update_high_frequency)
+				{
+					channel[0].raw_frequency = (mem_link->memory_map[0xFF14] & 0x7);
+					channel[0].raw_frequency <<= 8;
+					channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
+					channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
+					channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+				}
+			}
 
 			if(mem_link->memory_map[0xFF14] & 0x80) { play_channel_1(); }
 			break;
