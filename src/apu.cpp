@@ -416,8 +416,8 @@ void APU::play_channel_2()
 /****** Play GB sound channel 3 - RAM Waveform ******/
 void APU::play_channel_3()
 {
-	//Play sound only if Channel 3's Status is ON and Trigger bit is set
-	if(((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) && (mem_link->memory_map[mem_link->apu_update_addr] & 0x80))
+	//Attempt to play sound if trigger bit is set
+	if(mem_link->memory_map[mem_link->apu_update_addr] & 0x80)
 	{
 		//Frequency, duration, wave RAM, etc, can dynamically be changed
 		//The rest of the info should be determined upon sample generation
@@ -483,6 +483,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 	bool output_status = false;
 
 	if((mem_link->memory_map[0xFF25] & 0x1) || (mem_link->memory_map[0xFF25] & 0x10)) { output_status = true; }
+	if(!(mem_link->memory_map[0xFF26] & 0x80)) { output_status = false; }
 	
 	//Process samples if playing
 	if((channel[0].playing) && (output_status))
@@ -598,6 +599,7 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 	bool output_status = false;
 
 	if((mem_link->memory_map[0xFF25] & 0x2) || (mem_link->memory_map[0xFF25] & 0x20)) { output_status = true; }
+	if((mem_link->memory_map[0xFF26] & 0x80) == 0) { output_status = false; }
 
 	//Process samples if playing
 	if((channel[1].playing) && (output_status))
@@ -662,7 +664,8 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 	bool output_status = false;
 
 	if((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) { output_status = true; }
-	if(!(mem_link->memory_map[0xFF1A] & 0x80)) { output_status = false; }	
+	if(!(mem_link->memory_map[0xFF1A] & 0x80)) { output_status = false; }
+	if(!(mem_link->memory_map[0xFF26] & 0x80)) { output_status = false; }	
 
 	//Process samples if playing
 	if((channel[2].playing) && (output_status))
@@ -781,6 +784,7 @@ void APU::generate_channel_4_samples(s16* stream, int length)
 	bool output_status = false;
 
 	if((mem_link->memory_map[0xFF25] & 0x8) || (mem_link->memory_map[0xFF25] & 0x80)) { output_status = true; }
+	if(!(mem_link->memory_map[0xFF26] & 0x80)) { output_status = false; }	
 	
 	//Process samples if playing
 	if((channel[3].playing) && (output_status))
