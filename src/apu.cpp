@@ -142,7 +142,7 @@ void APU::update_channel_1(u16 update_addr)
 			{
 				channel[0].raw_frequency &= 0x700;
 				channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
-				channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+				channel[0].frequency = 131072.0/(2048-channel[0].raw_frequency);
 			}
 			break;
 
@@ -162,7 +162,7 @@ void APU::update_channel_1(u16 update_addr)
 					channel[0].raw_frequency <<= 8;
 					channel[0].raw_frequency |= mem_link->memory_map[0xFF13];
 					channel[0].raw_frequency = (channel[0].raw_frequency & 0x7FF);
-					channel[0].frequency = 4194304.0/(32 * (2048-channel[0].raw_frequency));
+					channel[0].frequency = 131072.0/(2048-channel[0].raw_frequency);
 				}
 			}
 
@@ -229,7 +229,7 @@ void APU::update_channel_2(u16 update_addr)
 		case 0xFF18:
 			channel[1].raw_frequency &= 0x700;
 			channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
-			channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
+			channel[1].frequency = 131072.0/(2048-channel[1].raw_frequency);
 			break;
 
 		//Frequency - High 3-bits & Trigger
@@ -238,7 +238,7 @@ void APU::update_channel_2(u16 update_addr)
 			channel[1].raw_frequency <<= 8;
 			channel[1].raw_frequency |= mem_link->memory_map[0xFF18];
 			channel[1].raw_frequency = (channel[1].raw_frequency & 0x7FF);
-			channel[1].frequency = 4194304.0/(32 * (2048-channel[1].raw_frequency));
+			channel[1].frequency = 131072.0/(2048-channel[1].raw_frequency);
 
 			if(mem_link->memory_map[0xFF19] & 0x80) { play_channel_2(); }
 			break;
@@ -519,7 +519,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 							else 
 							{ 
 								channel[0].raw_frequency += pre_calc;
-								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+								channel[0].frequency = 131072.0/(2048 - channel[0].raw_frequency);
 								mem_link->memory_map[0xFF13] = (channel[0].raw_frequency & 0xFF);
 								mem_link->memory_map[0xFF14] &= 0xC0; 
 								mem_link->memory_map[0xFF14] |= ((channel[0].raw_frequency >> 8) & 0x7);
@@ -535,7 +535,7 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 							if((channel[0].raw_frequency - pre_calc) >= 0) 
 							{ 
 								channel[0].raw_frequency -= pre_calc;
-								channel[0].frequency = 131072/(2048 - channel[0].raw_frequency);
+								channel[0].frequency = 131072.0/(2048 - channel[0].raw_frequency);
 								mem_link->memory_map[0xFF13] = (channel[0].raw_frequency & 0xFF);
 								mem_link->memory_map[0xFF14] &= 0xC0;
 								mem_link->memory_map[0xFF14] |= ((channel[0].raw_frequency >> 8) & 0x7);
@@ -694,7 +694,7 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 		frequency <<= 8;
 		frequency |= mem_link->memory_map[0xFF1D];
 		frequency = (frequency & 0x7FF);
-		channel[2].frequency = 4194304.0/(32 * (2048-frequency));
+		channel[2].frequency = 131072.0/(2048-frequency);
 
 		//Sound channel 3's frequency timer period runs twice as long as, say sound channel 1
 		//Since GBE does not have cycle-accurate APU emulation, it halves the frequency here
