@@ -92,6 +92,11 @@ class MMU
 	bool gpu_reset_ticks;
 	u16 gpu_update_addr;
 
+	//Variables read by the APU
+	//TODO: Extern these into a separate namespace
+	bool apu_update_channel;
+	u16 apu_update_addr;
+
 	//Cartridge Info
 	u32 cart_rom_size;
 	u32 cart_ram_size;
