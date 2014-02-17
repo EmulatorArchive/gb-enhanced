@@ -690,11 +690,11 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 		}
 
 		//Frequency
-		u32 frequency = mem_link->memory_map[0xFF1E];
-		frequency <<= 8;
-		frequency |= mem_link->memory_map[0xFF1D];
-		frequency = (frequency & 0x7FF);
-		channel[2].frequency = 131072.0/(2048-frequency);
+		channel[2].raw_frequency = mem_link->memory_map[0xFF1E];
+		channel[2].raw_frequency <<= 8;
+		channel[2].raw_frequency |= mem_link->memory_map[0xFF1D];
+		channel[2].raw_frequency &= 0x7FF;
+		channel[2].frequency = 131072.0/(2048-channel[2].raw_frequency);
 
 		//Sound channel 3's frequency timer period runs twice as long as, say sound channel 1
 		//Since GBE does not have cycle-accurate APU emulation, it halves the frequency here
