@@ -289,13 +289,30 @@ bool MMU::read_file(std::string filename)
 	//Manually HLE MMIO
 	if(!in_bios) 
 	{
-		write_byte(REG_LCDC, 0x91);
-		write_byte(REG_BGP, 0xFC);
-		write_byte(REG_OBP0, 0xFF);
-		write_byte(REG_OBP1, 0xFF);
-		write_byte(REG_P1, 0xFF);
-		write_byte(REG_DIV, 0xAF);
-		write_byte(REG_TAC, 0xF8);
+		memory_map[REG_LCDC] = 0x91;
+		memory_map[REG_BGP] = 0xFC;
+		memory_map[REG_OBP0] = 0xFF;
+		memory_map[REG_OBP1] = 0xFF;
+		memory_map[REG_P1] = 0xFF;
+		memory_map[REG_DIV] = 0xAF;
+		memory_map[REG_TAC] = 0xF8;
+		memory_map[0xFF10] = 0x80;
+		memory_map[0xFF11] = 0xBF;
+   		memory_map[0xFF12] = 0xF3; 
+  		memory_map[0xFF14] = 0xBF; 
+   		memory_map[0xFF16] = 0x3F; 
+   		memory_map[0xFF17] = 0x00; 
+   		memory_map[0xFF19] = 0xBF; 
+   		memory_map[0xFF1A] = 0x7F; 
+   		memory_map[0xFF1B] = 0xFF; 
+   		memory_map[0xFF1C] = 0x9F; 
+   		memory_map[0xFF1E] = 0xBF; 
+   		memory_map[0xFF20] = 0xFF; 
+   		memory_map[0xFF21] = 0x00; 
+   		memory_map[0xFF22] = 0x00; 
+   		memory_map[0xFF23] = 0xBF; 
+   		memory_map[0xFF24] = 0x77; 
+   		memory_map[0xFF25] = 0xF3; 
 	}
 
 	//Determine MBC type
