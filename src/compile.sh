@@ -5,6 +5,13 @@ else
 	exit
 fi
 
+if g++ -c -O3 -funroll-loops hash.cpp; then
+	echo -e "Compiling Hash...			\E[32m[DONE]\E[37m"
+else
+	echo -e "Compiling Hash...			\E[31m[ERROR]\E[37m"
+	exit
+fi
+
 if g++ -c -O3 -funroll-loops mbc1.cpp; then
 	echo -e "Compiling MBC1...			\E[32m[DONE]\E[37m"
 else
@@ -89,7 +96,7 @@ else
 	exit
 fi
 
-if g++ -o gbe config.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o apu.o hotkeys.o source.o -lSDL; then
+if g++ -o gbe config.o hash.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o apu.o hotkeys.o source.o -lSDL; then
 	echo -e "Linking Project...			\E[32m[DONE]\E[37m"
 else
 	echo -e "Linking Project...			\E[31m[ERROR]\E[37m"
