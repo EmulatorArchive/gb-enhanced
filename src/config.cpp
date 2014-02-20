@@ -18,6 +18,7 @@ namespace config
 {
 	bool use_bios = false;
 	bool use_opengl = false;
+	bool dump_sprites = false;
 	std::string rom_file = "";
 	std::vector <std::string> cli_args;
 	bool use_scaling = false;
@@ -67,6 +68,9 @@ bool parse_cli_args()
 
 			//Load and use GB BIOS
 			else if(config::cli_args[x] == "--bios") { config::use_bios = true; }
+
+			//Dump sprites
+			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; }
 			
 			//Set scaling filter #1 - Nearest Neighbor 2x
 			else if((config::cli_args[x] == "--f1") && (scaling_parsed == false))

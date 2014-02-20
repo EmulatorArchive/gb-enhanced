@@ -38,6 +38,8 @@ GPU::GPU()
 	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
 	memset(final_pixel_data, 0xFFFFFFFF, sizeof(final_pixel_data));
 
+	sprite_hash_list.push_back(" ");
+
 	for(int x = 0; x < 40; x++)
 	{
 		memset(sprites[x].raw_data, 0, sizeof(sprites[x].raw_data));
@@ -104,6 +106,84 @@ void GPU::scanline_compare()
 		if(mem_link->memory_map[REG_STAT] & 0x40) { mem_link->memory_map[REG_IF] |= 2; }
 	}
 	else { mem_link->memory_map[REG_STAT] &= ~0x4; }
+}
+
+/****** Dumps sprites to files - Primarily for custom graphics ******/
+void GPU::dump_sprites()
+{
+	SDL_Surface* custom_sprite = NULL;
+
+	//Read sprite pixel data
+	for(int x = 0; x < 40; x++)
+	{
+		u16 sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+
+		sprites[x].hash = "";
+		bool add_sprite_hash = true;
+
+		//Create a hash for each sprite
+		for(int a = 0; a < 4; a++)
+		{
+			u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+			sprites[x].hash += raw_to_64(temp_hash);
+
+			temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+			sprites[x].hash += raw_to_64(temp_hash);
+		}
+
+		//Update the sprite hash list
+		for(int a = 0; a < sprite_hash_list.size(); a++)
+		{
+			if(sprites[x].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+		}
+
+		//For new sprites, dump BMP file
+		if(add_sprite_hash) 
+		{ 
+			sprite_hash_list.push_back(sprites[x].hash);
+
+			u8 pal = sprites[x].options & 0x10 ? 1 : 0;
+			custom_sprite = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, 8, 32, 0, 0, 0, 0);
+			std::string dump_file = "Dump/Sprites/" + sprites[x].hash + ".bmp";
+
+			if(SDL_MUSTLOCK(custom_sprite)){ SDL_LockSurface(custom_sprite); }
+
+			u32* dump_pixel_data = (u32*)custom_sprite->pixels;
+
+			//Generate RGBA values of the sprite for the dump file
+			for(int a = 0; a < 0x40; a++)
+			{
+				switch(obp[sprites[x].raw_data[a]][pal])
+				{
+					case 0: 
+						dump_pixel_data[a] = 0xFFFFFFFF;
+						break;
+
+					case 1: 
+						dump_pixel_data[a] = 0xFFC0C0C0;
+						break;
+
+					case 2: 
+						dump_pixel_data[a] = 0xFF606060;
+						break;
+
+					case 3: 
+						dump_pixel_data[a] = 0xFF000000;
+						break;
+				}
+			}
+
+			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
+
+			//Save to BMP
+			std::cout<<"Saving Sprite: " << dump_file << "\n";
+			SDL_SaveBMP(custom_sprite, dump_file.c_str());
+		}
+	}
 }
 
 /****** Updates a specific tile ******/
@@ -612,6 +692,9 @@ void GPU::step(int cpu_clock)
 					
 					//VBlank STAT INT
 					if(mem_link->memory_map[REG_STAT] & 0x10) { mem_link->memory_map[REG_IF] |= 2; }
+
+					//Dump sprites every VBlank
+					if(config::dump_sprites) { dump_sprites(); }
 				}
 
 				if(gpu_clock >= 456)

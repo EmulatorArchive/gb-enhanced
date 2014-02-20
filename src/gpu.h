@@ -19,10 +19,12 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <map>
 
 #include "common.h"
 #include "mmu.h"
 #include "config.h"
+#include "hash.h"
 
 struct gb_sprite
 {
@@ -31,6 +33,7 @@ struct gb_sprite
 	int y; //TODO: Find a better way to handle off-screen coordinates
 	u8 tile_number;
 	u8 options;
+	std::string hash;
 };
 
 struct gb_tile
@@ -80,6 +83,11 @@ class GPU
 
 	gb_sprite sprites[40];
 
+	//Sprite Hash Data
+	std::vector<std::string> sprite_hash_list;
+	std::map<std::string, SDL_Surface*> custom_sprite_list;
+	std::map<std::string, SDL_Surface*>::iterator custom_sprite_list_itr;
+
 	void render_screen();
 	void scanline_compare();
 	void update_bg_tile();
@@ -90,6 +98,8 @@ class GPU
 	void horizontal_flip(u16 width, u16 height, u32 pixel_data[]);
 	void vertical_flip(u16 width, u16 height, u32 pixel_data[]);
 	u8 signed_tile(u8 tile_number);
+
+	void dump_sprites();
 };
 
 #endif // GB_GPU
