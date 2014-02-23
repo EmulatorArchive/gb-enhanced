@@ -113,6 +113,12 @@ void GPU::scanline_compare()
 void GPU::dump_sprites()
 {
 	SDL_Surface* custom_sprite = NULL;
+	u8 sprite_height = 0;
+
+	//Determine if in 8x8 or 8x16 mode
+	if(mem_link->memory_map[REG_LCDC] & 0x04) { sprite_height = 16; }
+	else { sprite_height = 8; }
+
 
 	//Read sprite pixel data
 	for(int x = 0; x < 40; x++)
@@ -123,7 +129,7 @@ void GPU::dump_sprites()
 		bool add_sprite_hash = true;
 
 		//Create a hash for each sprite
-		for(int a = 0; a < 4; a++)
+		for(int a = 0; a < sprite_height/2; a++)
 		{
 			u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
 			temp_hash << 8;
@@ -148,7 +154,7 @@ void GPU::dump_sprites()
 			sprite_hash_list.push_back(sprites[x].hash);
 
 			u8 pal = sprites[x].options & 0x10 ? 1 : 0;
-			custom_sprite = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, 8, 32, 0, 0, 0, 0);
+			custom_sprite = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, sprite_height, 32, 0, 0, 0, 0);
 			std::string dump_file = "Dump/Sprites/" + sprites[x].hash + ".bmp";
 
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_LockSurface(custom_sprite); }
@@ -156,7 +162,7 @@ void GPU::dump_sprites()
 			u32* dump_pixel_data = (u32*)custom_sprite->pixels;
 
 			//Generate RGBA values of the sprite for the dump file
-			for(int a = 0; a < 0x40; a++)
+			for(int a = 0; a < (8 * sprite_height); a++)
 			{
 				switch(obp[sprites[x].raw_data[a]][pal])
 				{
@@ -179,8 +185,8 @@ void GPU::dump_sprites()
 			}
 
 			//Reverse any flipping to get the original sprite's orentation
-			if(sprites[x].options & 0x20) { horizontal_flip(8, 8, dump_pixel_data); }
-			if(sprites[x].options & 0x40) { vertical_flip(8, 8, dump_pixel_data); }
+			if(sprites[x].options & 0x20) { horizontal_flip(8, sprite_height, dump_pixel_data); }
+			if(sprites[x].options & 0x40) { vertical_flip(8, sprite_height, dump_pixel_data); }
 
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
 
@@ -544,7 +550,7 @@ void GPU::generate_sprites()
 			bool add_sprite_hash = true;
 
 			//Create a hash for each sprite
-			for(int a = 0; a < 4; a++)
+			for(int a = 0; a < sprite_height/2; a++)
 			{
 				u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
 				temp_hash << 8;
@@ -584,7 +590,7 @@ void GPU::generate_sprites()
 			
 					u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
 
-					for(int a = 0; a < 0x40; a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
+					for(int a = 0; a < (8 * sprite_height); a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
 
 					if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
 
@@ -599,7 +605,7 @@ void GPU::generate_sprites()
 			
 				u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
 
-				for(int a = 0; a < 0x40; a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
+				for(int a = 0; a < (8 * sprite_height); a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
 
@@ -725,6 +731,7 @@ void GPU::render_screen()
 	//Limit FPS to 60
 	if(!config::turbo)
 	{
+		dump_sprites();
 		frame_current_time = SDL_GetTicks();
 		if((frame_current_time - frame_start_time) < (1000/60)) { SDL_Delay((1000/60) - (frame_current_time - frame_start_time));}
 		else { std::cout<<"GPU : Late Blit\n"; }
