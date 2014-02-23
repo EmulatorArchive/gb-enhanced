@@ -34,6 +34,7 @@ struct gb_sprite
 	u8 tile_number;
 	u8 options;
 	std::string hash;
+	bool custom_data_loaded;
 };
 
 struct gb_tile

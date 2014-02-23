@@ -19,6 +19,7 @@ namespace config
 	bool use_bios = false;
 	bool use_opengl = false;
 	bool dump_sprites = false;
+	bool load_sprites = false;
 	std::string rom_file = "";
 	std::vector <std::string> cli_args;
 	bool use_scaling = false;
@@ -70,7 +71,10 @@ bool parse_cli_args()
 			else if(config::cli_args[x] == "--bios") { config::use_bios = true; }
 
 			//Dump sprites
-			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; }
+			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; config::load_sprites = false; }
+
+			//Load sprites
+			else if(config::cli_args[x] == "--load_sprites") { config::load_sprites = true; config::dump_sprites = false; }
 			
 			//Set scaling filter #1 - Nearest Neighbor 2x
 			else if((config::cli_args[x] == "--f1") && (scaling_parsed == false))

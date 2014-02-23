@@ -43,6 +43,7 @@ GPU::GPU()
 	for(int x = 0; x < 40; x++)
 	{
 		memset(sprites[x].raw_data, 0, sizeof(sprites[x].raw_data));
+		sprites[x].custom_data_loaded = false;
 	}
 }
 
@@ -176,6 +177,10 @@ void GPU::dump_sprites()
 						break;
 				}
 			}
+
+			//Reverse any flipping to get the original sprite's orentation
+			if(sprites[x].options & 0x20) { horizontal_flip(8, 8, dump_pixel_data); }
+			if(sprites[x].options & 0x40) { vertical_flip(8, 8, dump_pixel_data); }
 
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
 
@@ -435,32 +440,37 @@ void GPU::generate_scanline()
 				{
 					bool draw_sprite_pixel = false;
 
-					//If raw data is 0, that's the sprites transparency
-					//In this case, we leave scanline data untouched
-					if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
-					else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+					if(sprites[current_sprite].custom_data_loaded) { scanline_pixel_data[current_pixel] = sprites[current_sprite].raw_data[y]; }
 
-					if(draw_sprite_pixel) 
+					else 
 					{
-						//Output Scanline data to RGBA
-						switch(obp[sprites[current_sprite].raw_data[y]][pal])
+						//If raw data is 0, that's the sprites transparency
+						//In this case, we leave scanline data untouched
+						if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
+						else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+
+						if(draw_sprite_pixel) 
 						{
-							case 0: 
-								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-								break;
+							//Output Scanline data to RGBA
+							switch(obp[sprites[current_sprite].raw_data[y]][pal])
+							{
+								case 0: 
+									scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+									break;
 
-							case 1: 
-								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-								break;
+								case 1: 
+									scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+									break;
 
-							case 2: 
-								scanline_pixel_data[current_pixel] = 0xFF606060;
-								break;
+								case 2: 
+									scanline_pixel_data[current_pixel] = 0xFF606060;
+									break;
 
-							case 3: 
-								scanline_pixel_data[current_pixel] = 0xFF000000;
-								break;
-						}
+								case 3: 
+									scanline_pixel_data[current_pixel] = 0xFF000000;
+									break;
+							}
+						} 
 					}
 
 					current_pixel++;
@@ -520,39 +530,156 @@ void GPU::generate_sprites()
 	obp[2][1] = (sp_one >> 4) & 0x3;
 	obp[3][1] = (sp_one >> 6) & 0x3;
 
-	//Read sprite pixel data
+	//Load custom sprite data
+	if(config::load_sprites)
+	{
+		SDL_Surface* custom_sprite = NULL;
+
+		//Read sprite pixel data
+		for(int x = 0; x < 40; x++)
+		{
+			u16 sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+
+			sprites[x].hash = "";
+			bool add_sprite_hash = true;
+
+			//Create a hash for each sprite
+			for(int a = 0; a < 4; a++)
+			{
+				u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
+				temp_hash << 8;
+				temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+				sprites[x].hash += raw_to_64(temp_hash);
+
+				temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
+				temp_hash << 8;
+				temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+				sprites[x].hash += raw_to_64(temp_hash);
+			}
+
+			//Search for already loaded custom sprite data
+			custom_sprite_list_itr = custom_sprite_list.find(sprites[x].hash);
+
+			//Check to see if hash exists already
+			for(int a = 0; a < sprite_hash_list.size(); a++)
+			{
+				if(sprites[x].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+			}
+
+			//If hash does not exist add it to the list, try to read custom sprite data and update map
+			if(add_sprite_hash) 
+			{ 
+				sprite_hash_list.push_back(sprites[x].hash);
+
+				std::string load_file = "Load/Sprites/" + sprites[x].hash + ".bmp";
+				custom_sprite = SDL_LoadBMP(load_file.c_str());
+
+				//Load custom sprite data into map and raw data
+				if(custom_sprite != NULL) 
+				{ 
+					custom_sprite_list[sprites[x].hash] = SDL_LoadBMP(load_file.c_str()); 
+					std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
+
+					if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
+			
+					u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
+
+					for(int a = 0; a < 0x40; a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
+
+					if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
+
+					sprites[x].custom_data_loaded = true;
+				}
+			}
+
+			//If hash already exists in the list, try to read custom sprite data from the map
+			else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
+			{
+				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
+			
+				u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
+
+				for(int a = 0; a < 0x40; a++) { sprites[x].raw_data[a] = custom_pixel_data[a]; }
+
+				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
+
+				sprites[x].custom_data_loaded = true;
+			}
+
+			//Load normal data even if no match in the map is found
+			else if((!add_sprite_hash) && (custom_sprite_list_itr == custom_sprite_list.end()))
+			{
+				sprites[x].custom_data_loaded = false;
+
+				//Read Sprite Options
+				u8 pal = sprites[x].options & 0x10 ? 1 : 0;
+				sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+				u8 pixel_counter = 0;
+
+				//Cycles through tile
+				for(int y = 0; y < sprite_height; y++)
+				{
+					//Grab High and Low Bytes for Tile
+					high_byte = mem_link->memory_map[sprite_tile_addr];
+					low_byte = mem_link->memory_map[sprite_tile_addr+1];
+
+					//Cycle through High and Low bytes
+					for(int z = 7; z >= 0; z--)
+					{
+						high_bit = (high_byte >> z) & 0x01;
+						low_bit = (low_byte >> z) & 0x01;
+						final_byte = high_bit + (low_bit * 2);
+
+						sprites[x].raw_data[pixel_counter] = final_byte;
+						pixel_counter++;
+					}
+
+					sprite_tile_addr += 2;
+				}
+			}
+		}
+	}
+
+	//Read sprite pixel data normally	
+	else			
+	{
+		for(int x = 0; x < 40; x++)
+		{
+			sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+			u8 pixel_counter = 0;
+
+			//Read Sprite Options
+			u8 pal = sprites[x].options & 0x10 ? 1 : 0;
+
+			//Cycles through tile
+			for(int y = 0; y < sprite_height; y++)
+			{
+				//Grab High and Low Bytes for Tile
+				high_byte = mem_link->memory_map[sprite_tile_addr];
+				low_byte = mem_link->memory_map[sprite_tile_addr+1];
+
+				//Cycle through High and Low bytes
+				for(int z = 7; z >= 0; z--)
+				{
+					high_bit = (high_byte >> z) & 0x01;
+					low_bit = (low_byte >> z) & 0x01;
+					final_byte = high_bit + (low_bit * 2);
+
+					sprites[x].raw_data[pixel_counter] = final_byte;
+					pixel_counter++;
+				}
+
+				sprite_tile_addr += 2;
+			}
+		}
+	}
+
+	//Handle horizontal and vertical flipping
 	for(int x = 0; x < 40; x++)
 	{
-		sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
-		u8 pixel_counter = 0;
-
-		//Read Sprite Options
-		u8 pal = sprites[x].options & 0x10 ? 1 : 0;
 		u8 h_flip = sprites[x].options & 0x20 ? 1 : 0;
 		u8 v_flip = sprites[x].options & 0x40 ? 1 : 0;
 
-		//Cycles through tile
-		for(int y = 0; y < sprite_height; y++)
-		{
-			//Grab High and Low Bytes for Tile
-			high_byte = mem_link->memory_map[sprite_tile_addr];
-			low_byte = mem_link->memory_map[sprite_tile_addr+1];
-
-			//Cycle through High and Low bytes
-			for(int z = 7; z >= 0; z--)
-			{
-				high_bit = (high_byte >> z) & 0x01;
-				low_bit = (low_byte >> z) & 0x01;
-				final_byte = high_bit + (low_bit * 2);
-
-				sprites[x].raw_data[pixel_counter] = final_byte;
-				pixel_counter++;
-			}
-
-			sprite_tile_addr += 2;
-		}
-
-		//Handle horizontal and vertical flipping
 		if(h_flip == 1) { horizontal_flip(8, sprite_height, sprites[x].raw_data); }
 		if(v_flip == 1) { vertical_flip(8, sprite_height, sprites[x].raw_data); }
 	}

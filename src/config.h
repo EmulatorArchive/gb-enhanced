@@ -22,6 +22,7 @@ namespace config
 	extern bool use_bios;
 	extern bool use_opengl;
 	extern bool dump_sprites;
+	extern bool load_sprites;
 	extern std::string rom_file;
 	extern std::vector <std::string> cli_args;
 	extern bool use_scaling;
