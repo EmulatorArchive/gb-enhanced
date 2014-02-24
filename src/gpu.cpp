@@ -115,10 +115,11 @@ void GPU::dump_sprites()
 	SDL_Surface* custom_sprite = NULL;
 	u8 sprite_height = 0;
 
+	u16 hash_salt = ((mem_link->memory_map[REG_OBP0] << 8) | mem_link->memory_map[REG_OBP1]);
+
 	//Determine if in 8x8 or 8x16 mode
 	if(mem_link->memory_map[REG_LCDC] & 0x04) { sprite_height = 16; }
 	else { sprite_height = 8; }
-
 
 	//Read sprite pixel data
 	for(int x = 0; x < 40; x++)
@@ -134,11 +135,13 @@ void GPU::dump_sprites()
 			u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
 			temp_hash << 8;
 			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 
 			temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
 			temp_hash << 8;
 			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 		}
 
@@ -446,8 +449,10 @@ void GPU::generate_scanline()
 				{
 					bool draw_sprite_pixel = false;
 
+					//Draw custom sprite data
 					if(sprites[current_sprite].custom_data_loaded) { scanline_pixel_data[current_pixel] = sprites[current_sprite].raw_data[y]; }
 
+					//Draw original sprite data
 					else 
 					{
 						//If raw data is 0, that's the sprites transparency
@@ -541,6 +546,8 @@ void GPU::generate_sprites()
 	{
 		SDL_Surface* custom_sprite = NULL;
 
+		u16 hash_salt = ((mem_link->memory_map[REG_OBP0] << 8) | mem_link->memory_map[REG_OBP1]);
+
 		//Read sprite pixel data
 		for(int x = 0; x < 40; x++)
 		{
@@ -555,11 +562,13 @@ void GPU::generate_sprites()
 				u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
 				temp_hash << 8;
 				temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+				temp_hash = temp_hash ^ hash_salt;
 				sprites[x].hash += raw_to_64(temp_hash);
 
 				temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
 				temp_hash << 8;
 				temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+				temp_hash = temp_hash ^ hash_salt;
 				sprites[x].hash += raw_to_64(temp_hash);
 			}
 
