@@ -20,12 +20,13 @@ namespace config
 	bool use_opengl = false;
 	bool dump_sprites = false;
 	bool load_sprites = false;
+	u32 custom_sprite_transparency = 0xFF00FF00;
 	std::string rom_file = "";
 	std::vector <std::string> cli_args;
 	bool use_scaling = false;
 	int scaling_mode = 0;
 	int scaling_factor = 1;
-	std::vector <int> ini_parameters;
+	std::vector <u32> ini_parameters;
 
 	//Default keyboard bindings
 	//Arrow Z = A button, X = B button, START = Return, Select = Space
@@ -248,6 +249,32 @@ bool parse_config_file()
 	if(config::ini_parameters.size() >= 20)
 	{
 		config::dead_zone = config::ini_parameters[19];
+	}
+
+	//Check for dump sprites
+	if(config::ini_parameters.size() >= 21)
+	{
+		if(config::ini_parameters[20] == 1)
+		{
+			config::dump_sprites = true;
+			config::load_sprites = false;
+		}
+	}
+
+	//Check for load sprites
+	if(config::ini_parameters.size() >= 22)
+	{
+		if(config::ini_parameters[21] == 1)
+		{
+			config::load_sprites = true;
+			config::dump_sprites = false;
+		}
+	}
+
+	//Check for custom sprite transparency
+	if(config::ini_parameters.size() >= 23)
+	{
+		config::custom_sprite_transparency = config::ini_parameters[22];
 	}
 
 	return true;

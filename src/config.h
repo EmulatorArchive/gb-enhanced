@@ -14,6 +14,8 @@
 #include <vector>
 #include <string>
 
+#include "common.h"
+
 bool parse_cli_args();
 bool parse_config_file();
 
@@ -23,6 +25,7 @@ namespace config
 	extern bool use_opengl;
 	extern bool dump_sprites;
 	extern bool load_sprites;
+	extern u32 custom_sprite_transparency;
 	extern std::string rom_file;
 	extern std::vector <std::string> cli_args;
 	extern bool use_scaling;
@@ -31,7 +34,7 @@ namespace config
 	extern int key_a, key_b, key_start, key_select, key_up, key_down, key_left, key_right;
 	extern int joy_a, joy_b, joy_start, joy_select, joy_up, joy_down, joy_left, joy_right;
 	extern int dead_zone;
-	extern std::vector <int> ini_parameters;
+	extern std::vector <u32> ini_parameters;
 	extern bool turbo;
 }
 
