@@ -134,12 +134,12 @@ bool parse_config_file()
 	std::ifstream file("gbe.ini", std::ios::in); 
 	std::string input_line = "";
 	std::string line_char = "";
-	int output = 0;
+	u32 output = 0;
 
 	//Clear existing .ini parameters
 	config::ini_parameters.clear();
 
-	if(!file.is_open()) 
+	if(!file.is_open())
 	{
 		std::cout<<"Error : Could not open gbe.ini configuration file. Check file path or permissions. \n";
 		return false; 

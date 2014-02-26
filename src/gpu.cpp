@@ -450,7 +450,14 @@ void GPU::generate_scanline()
 					bool draw_sprite_pixel = false;
 
 					//Draw custom sprite data
-					if(sprites[current_sprite].custom_data_loaded) { scanline_pixel_data[current_pixel] = sprites[current_sprite].raw_data[y]; }
+					if(sprites[current_sprite].custom_data_loaded) 
+					{
+						//Only draw if pixel color is not equal to the transparency value
+						if(sprites[current_sprite].raw_data[y] != config::custom_sprite_transparency)
+						{
+							scanline_pixel_data[current_pixel] = sprites[current_sprite].raw_data[y]; 
+						}
+					}
 
 					//Draw original sprite data
 					else 
@@ -740,7 +747,6 @@ void GPU::render_screen()
 	//Limit FPS to 60
 	if(!config::turbo)
 	{
-		dump_sprites();
 		frame_current_time = SDL_GetTicks();
 		if((frame_current_time - frame_start_time) < (1000/60)) { SDL_Delay((1000/60) - (frame_current_time - frame_start_time));}
 		else { std::cout<<"GPU : Late Blit\n"; }
