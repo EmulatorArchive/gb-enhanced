@@ -101,6 +101,8 @@ class GPU
 	u8 signed_tile(u8 tile_number);
 
 	void dump_sprites();
+	u32 dump_tile_0;
+	u32 dump_tile_1;
 };
 
 #endif // GB_GPU

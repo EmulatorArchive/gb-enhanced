@@ -25,6 +25,15 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 		SDL_Quit();
 	}
 
+	//Mouse coordinates
+	else if(event.type == SDL_MOUSEMOTION)
+	{
+		config::mouse_x = event.motion.x;
+		config::mouse_y = event.motion.y;
+
+		std::cout<<"Mouse X : " << config::mouse_x << "\n";
+	}
+
 	//Screenshot on F9
 	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F9)) { take_screenshot(gb_gpu); }
 

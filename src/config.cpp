@@ -43,6 +43,10 @@ namespace config
 
 	//Temporarily disable framelimit
 	bool turbo = false;
+
+	//Mouse screen coordinates
+	u32 mouse_x = 0;
+	u32 mouse_y = 0;
 }
 
 /****** Parse arguments passed from the command-line ******/

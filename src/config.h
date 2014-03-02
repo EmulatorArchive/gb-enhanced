@@ -36,6 +36,8 @@ namespace config
 	extern int dead_zone;
 	extern std::vector <u32> ini_parameters;
 	extern bool turbo;
+	extern u32 mouse_x;
+	extern u32 mouse_y;
 }
 
 #endif // GB_CONFIG
