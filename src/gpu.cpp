@@ -48,6 +48,7 @@ GPU::GPU()
 
 	dump_tile_0 = 0xFEEDBACC;
 	dump_tile_1 = 0xFEEDBACC;
+	dump_tile_win = 0xFEEDBACC;
 }
 
 /****** GPU Deconstructor ******/
@@ -313,14 +314,20 @@ void GPU::generate_scanline()
 		//Generate background pixel data for selected tiles
 		for(int x = tile_lower_range; x < tile_upper_range; x++)
 		{
-			bool highlight_tile = false;
-			u32 upper_bound = mem_link->memory_map[REG_LY];
-			u32 lower_bound = mem_link->memory_map[REG_LY] + 8;
-			u32 left_bound = current_pixel;
-			u32 right_bound = current_pixel + 8;
 
-			if((tile_line == 0) && ((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
-			&& ((config::mouse_y/config::scaling_factor) > upper_bound) && ((config::mouse_y/config::scaling_factor) < lower_bound)) { highlight_tile = true; }
+			bool highlight_tile = false;
+
+			//Check if tile can be highlighted - For BG tile dumping
+			if(config::dump_sprites)
+			{
+				u32 upper_bound = mem_link->memory_map[REG_LY];
+				u32 lower_bound = mem_link->memory_map[REG_LY] + 8;
+				u32 left_bound = current_pixel;
+				u32 right_bound = current_pixel + 8;
+
+				if((tile_line == 0) && ((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
+				&& ((config::mouse_y/config::scaling_factor) > upper_bound) && ((config::mouse_y/config::scaling_factor) < lower_bound)) { highlight_tile = true; }
+			}
 
 			for(int y = (tile_line * 8); y < ((tile_line * 8) + 8); y++)
 			{
@@ -360,9 +367,13 @@ void GPU::generate_scanline()
 						scanline_pixel_data[current_pixel] = 0xFF000000;
 						break;
 				}
-
-				if((mem_link->memory_map[REG_LCDC] & 0x10) && (map_entry == dump_tile_1)) { scanline_pixel_data[current_pixel] += 0x00350000; }
-				else if(((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (map_entry == dump_tile_0)) { scanline_pixel_data[current_pixel] += 0x00350000; }
+				
+				//Highlight tiles on mouseover - For BG tile dumping
+				if(config::dump_sprites)
+				{
+					if((mem_link->memory_map[REG_LCDC] & 0x10) && (map_entry == dump_tile_1)) { scanline_pixel_data[current_pixel] += 0x00700000; }
+					else if(((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (map_entry == dump_tile_0)) { scanline_pixel_data[current_pixel] += 0x00700000; }
+				}
 
 				current_pixel++;
 			}
@@ -386,6 +397,20 @@ void GPU::generate_scanline()
 		//Generate window pixel data for selected tiles
 		for(int x = tile_lower_range; x < tile_upper_range; x++)
 		{
+			bool highlight_tile = false;
+
+			//Check if tile can be highlighted - For BG tile dumping
+			if(config::dump_sprites)
+			{
+				u32 upper_bound = mem_link->memory_map[REG_LY];
+				u32 lower_bound = mem_link->memory_map[REG_LY] + 8;
+				u32 left_bound = current_pixel;
+				u32 right_bound = current_pixel + 8;
+
+				if((window_line == 0) && ((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
+				&& ((config::mouse_y/config::scaling_factor) > upper_bound) && ((config::mouse_y/config::scaling_factor) < lower_bound)) { highlight_tile = true; }
+			}
+
 			for(int y = (window_line * 8); y < ((window_line * 8) + 8); y++)
 			{
 				map_entry = mem_link->memory_map[map_addr + x];
@@ -393,6 +418,8 @@ void GPU::generate_scanline()
 				//Choose from the correct Tile Set
 				if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
 				else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
+
+				if(highlight_tile) { dump_tile_win = map_entry; }
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
 			
@@ -415,6 +442,8 @@ void GPU::generate_scanline()
 						scanline_pixel_data[current_pixel] = 0xFF000000;
 						break;
 				}
+
+				if((config::dump_sprites) && (map_entry == dump_tile_win)) { scanline_pixel_data[current_pixel] += 0x00700000; }
 
 				current_pixel++;
 				if(current_pixel == 0) { x = tile_upper_range; break; }

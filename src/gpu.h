@@ -103,6 +103,7 @@ class GPU
 	void dump_sprites();
 	u32 dump_tile_0;
 	u32 dump_tile_1;
+	u32 dump_tile_win;
 };
 
 #endif // GB_GPU

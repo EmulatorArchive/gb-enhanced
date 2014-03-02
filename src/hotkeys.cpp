@@ -30,8 +30,6 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 	{
 		config::mouse_x = event.motion.x;
 		config::mouse_y = event.motion.y;
-
-		std::cout<<"Mouse X : " << config::mouse_x << "\n";
 	}
 
 	//Screenshot on F9
