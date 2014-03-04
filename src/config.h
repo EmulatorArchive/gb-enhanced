@@ -36,6 +36,7 @@ namespace config
 	extern int dead_zone;
 	extern std::vector <u32> ini_parameters;
 	extern bool turbo;
+	extern bool mouse_click;
 	extern u32 mouse_x;
 	extern u32 mouse_y;
 }

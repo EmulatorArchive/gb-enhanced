@@ -44,6 +44,9 @@ namespace config
 	//Temporarily disable framelimit
 	bool turbo = false;
 
+	//Mouse click
+	bool mouse_click = false;
+
 	//Mouse screen coordinates
 	u32 mouse_x = 0;
 	u32 mouse_y = 0;

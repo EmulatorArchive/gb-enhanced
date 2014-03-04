@@ -33,8 +33,6 @@ GPU::GPU()
 	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
 
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
-	memset(tile_set_1, 0, sizeof(tile_set_1));
-	memset(tile_set_0, 0, sizeof(tile_set_0));
 	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
 	memset(final_pixel_data, 0xFFFFFFFF, sizeof(final_pixel_data));
 
@@ -46,9 +44,18 @@ GPU::GPU()
 		sprites[x].custom_data_loaded = false;
 	}
 
+	for(int x = 0; x < 0x100; x++)
+	{
+		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].raw_data));
+		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].raw_data));
+		tile_set_1[x].custom_data_loaded = false;
+		tile_set_0[x].custom_data_loaded = false;
+	}
+
 	dump_tile_0 = 0xFEEDBACC;
 	dump_tile_1 = 0xFEEDBACC;
 	dump_tile_win = 0xFEEDBACC;
+	dump_mode = 4;
 }
 
 /****** GPU Deconstructor ******/
@@ -204,6 +211,185 @@ void GPU::dump_sprites()
 	}
 }
 
+/****** Dumps highlighted BG tiles to files - Primarily for custom graphics ******/
+void GPU::dump_bg_tileset_1()
+{
+	SDL_Surface* custom_tile = NULL;
+
+	u16 hash_salt = mem_link->memory_map[REG_BGP];
+	
+	//Dump BG tile from Tile Set 1
+	u16 tile_addr = (dump_tile_1 * 16) + 0x8000;
+
+	tile_set_1[dump_tile_1].hash = "";
+	bool add_sprite_hash = true;
+
+	//Create a hash for the tile
+	for(int a = 0; a < 4; a++)
+	{
+		u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+		temp_hash << 8;
+		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+		temp_hash = temp_hash ^ hash_salt;
+		tile_set_1[dump_tile_1].hash += raw_to_64(temp_hash);
+
+		temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+		temp_hash << 8;
+		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+		temp_hash = temp_hash ^ hash_salt;
+		tile_set_1[dump_tile_1].hash += raw_to_64(temp_hash);
+	}
+
+	//Update the sprite hash list
+	for(int a = 0; a < sprite_hash_list.size(); a++)
+	{
+		if(tile_set_1[dump_tile_1].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+	}
+
+	//For new tiles, dump BMP file
+	if(add_sprite_hash) 
+	{ 
+		sprite_hash_list.push_back(tile_set_1[dump_tile_1].hash);
+
+		custom_tile = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, 8, 32, 0, 0, 0, 0);
+		std::string dump_file = "Dump/BG/" + tile_set_1[dump_tile_1].hash + ".bmp";
+
+		if(SDL_MUSTLOCK(custom_tile)){ SDL_LockSurface(custom_tile); }
+
+		u32* dump_pixel_data = (u32*)custom_tile->pixels;
+
+		//Generate RGBA values of the sprite for the dump file
+		for(int a = 0; a < 0x40; a++)
+		{
+			switch(bgp[tile_set_1[dump_tile_1].raw_data[a]])
+			{
+				case 0: 
+					dump_pixel_data[a] = 0xFFFFFFFF;
+					break;
+
+				case 1: 
+					dump_pixel_data[a] = 0xFFC0C0C0;
+					break;
+
+				case 2: 
+					dump_pixel_data[a] = 0xFF606060;
+					break;
+
+				case 3: 
+					dump_pixel_data[a] = 0xFF000000;
+					break;
+			}
+		}
+
+		if(SDL_MUSTLOCK(custom_tile)){ SDL_UnlockSurface(custom_tile); }
+
+		//Save to BMP
+		std::cout<<"Saving BG Tile: " << dump_file << "\n";
+		SDL_SaveBMP(custom_tile, dump_file.c_str());
+	}
+}
+
+/****** Dumps highlighted BG tiles to files - Primarily for custom graphics ******/
+void GPU::dump_bg_tileset_0()
+{
+	SDL_Surface* custom_tile = NULL;
+
+	u16 hash_salt = mem_link->memory_map[REG_BGP];
+	
+	//Dump BG tile from Tile Set 0
+	u16 tile_addr = (dump_tile_0 * 16) + 0x8800;
+
+	tile_set_0[dump_tile_0].hash = "";
+	bool add_sprite_hash = true;
+
+	//Create a hash for the tile
+	for(int a = 0; a < 4; a++)
+	{
+		u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+		temp_hash << 8;
+		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+		temp_hash = temp_hash ^ hash_salt;
+		tile_set_0[dump_tile_0].hash += raw_to_64(temp_hash);
+
+		temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+		temp_hash << 8;
+		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+		temp_hash = temp_hash ^ hash_salt;
+		tile_set_0[dump_tile_0].hash += raw_to_64(temp_hash);
+	}
+
+	//Update the sprite hash list
+	for(int a = 0; a < sprite_hash_list.size(); a++)
+	{
+		if(tile_set_0[dump_tile_0].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+	}
+
+	//For new tiles, dump BMP file
+	if(add_sprite_hash) 
+	{ 
+		sprite_hash_list.push_back(tile_set_0[dump_tile_0].hash);
+
+		custom_tile = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, 8, 32, 0, 0, 0, 0);
+		std::string dump_file = "Dump/BG/" + tile_set_0[dump_tile_0].hash + ".bmp";
+
+		if(SDL_MUSTLOCK(custom_tile)){ SDL_LockSurface(custom_tile); }
+
+		u32* dump_pixel_data = (u32*)custom_tile->pixels;
+
+		//Generate RGBA values of the sprite for the dump file
+		for(int a = 0; a < 0x40; a++)
+		{
+			switch(bgp[tile_set_0[dump_tile_0].raw_data[a]])
+			{
+				case 0: 
+					dump_pixel_data[a] = 0xFFFFFFFF;
+					break;
+
+				case 1: 
+					dump_pixel_data[a] = 0xFFC0C0C0;
+					break;
+
+				case 2: 
+					dump_pixel_data[a] = 0xFF606060;
+					break;
+
+				case 3: 
+					dump_pixel_data[a] = 0xFF000000;
+					break;
+			}
+		}
+
+		if(SDL_MUSTLOCK(custom_tile)){ SDL_UnlockSurface(custom_tile); }
+
+		//Save to BMP
+		std::cout<<"Saving BG Tile: " << dump_file << "\n";
+		SDL_SaveBMP(custom_tile, dump_file.c_str());
+	}
+}
+
+/****** Dumps highlighted BG tiles to files - Primarily for custom graphics ******/
+void GPU::dump_bg_window()
+{
+	u32 temp_dump_tile = 0;
+
+	if(dump_mode == 2) 
+	{ 
+		temp_dump_tile = dump_tile_1;
+		dump_tile_1 = dump_tile_win;
+		dump_bg_tileset_1();
+		dump_tile_1 = temp_dump_tile;
+	}
+
+	else if(dump_mode == 3)
+	{
+		std::cout<<"Dumping Tile # " << dump_tile_win << "\n";
+		temp_dump_tile = dump_tile_0;
+		dump_tile_0 = dump_tile_win;
+		dump_bg_tileset_0();
+		dump_tile_0 = temp_dump_tile;
+	}
+}
+
 /****** Updates a specific tile ******/
 void GPU::update_bg_tile()
 {
@@ -320,13 +506,12 @@ void GPU::generate_scanline()
 			//Check if tile can be highlighted - For BG tile dumping
 			if(config::dump_sprites)
 			{
-				u32 upper_bound = mem_link->memory_map[REG_LY];
-				u32 lower_bound = mem_link->memory_map[REG_LY] + 8;
+				u32 line_bound = mem_link->memory_map[REG_LY];
 				u32 left_bound = current_pixel;
 				u32 right_bound = current_pixel + 8;
 
-				if((tile_line == 0) && ((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
-				&& ((config::mouse_y/config::scaling_factor) > upper_bound) && ((config::mouse_y/config::scaling_factor) < lower_bound)) { highlight_tile = true; }
+				if(((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
+				&& ((config::mouse_y/config::scaling_factor) == line_bound)) { highlight_tile = true; }
 			}
 
 			for(int y = (tile_line * 8); y < ((tile_line * 8) + 8); y++)
@@ -337,13 +522,13 @@ void GPU::generate_scanline()
 				if(mem_link->memory_map[REG_LCDC] & 0x10) 
 				{
 					tile_pixel = tile_set_1[map_entry].raw_data[y];
-					if(highlight_tile) { dump_tile_1 = map_entry; }
+					if(highlight_tile) { dump_tile_1 = map_entry; dump_mode = 1; }
 				}
 				else 
 				{ 
 					map_entry = signed_tile(map_entry); 
 					tile_pixel = tile_set_0[map_entry].raw_data[y];
-					if(highlight_tile) { dump_tile_0 = map_entry; } 
+					if(highlight_tile) { dump_tile_0 = map_entry; dump_mode = 0; } 
 				}
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
@@ -402,13 +587,12 @@ void GPU::generate_scanline()
 			//Check if tile can be highlighted - For BG tile dumping
 			if(config::dump_sprites)
 			{
-				u32 upper_bound = mem_link->memory_map[REG_LY];
-				u32 lower_bound = mem_link->memory_map[REG_LY] + 8;
+				u32 line_bound = mem_link->memory_map[REG_LY];
 				u32 left_bound = current_pixel;
 				u32 right_bound = current_pixel + 8;
 
-				if((window_line == 0) && ((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
-				&& ((config::mouse_y/config::scaling_factor) > upper_bound) && ((config::mouse_y/config::scaling_factor) < lower_bound)) { highlight_tile = true; }
+				if(((config::mouse_x/config::scaling_factor) > left_bound) && ((config::mouse_x/config::scaling_factor) < right_bound)
+				&& ((config::mouse_y/config::scaling_factor) == line_bound)) { highlight_tile = true; }
 			}
 
 			for(int y = (window_line * 8); y < ((window_line * 8) + 8); y++)
@@ -416,10 +600,17 @@ void GPU::generate_scanline()
 				map_entry = mem_link->memory_map[map_addr + x];
 
 				//Choose from the correct Tile Set
-				if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_pixel = tile_set_1[map_entry].raw_data[y]; }
-				else { map_entry = signed_tile(map_entry); tile_pixel = tile_set_0[map_entry].raw_data[y]; }
-
-				if(highlight_tile) { dump_tile_win = map_entry; }
+				if(mem_link->memory_map[REG_LCDC] & 0x10) 
+				{
+					tile_pixel = tile_set_1[map_entry].raw_data[y];
+					if(highlight_tile) { dump_tile_win = map_entry; dump_mode = 2; }
+				}
+				else 
+				{ 
+					map_entry = signed_tile(map_entry); 
+					tile_pixel = tile_set_0[map_entry].raw_data[y];
+					if(highlight_tile) { dump_tile_win = map_entry; dump_mode = 3; } 
+				}
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
 			
@@ -895,8 +1086,15 @@ void GPU::step(int cpu_clock)
 					//VBlank STAT INT
 					if(mem_link->memory_map[REG_STAT] & 0x10) { mem_link->memory_map[REG_IF] |= 2; }
 
-					//Dump sprites every VBlank
-					if(config::dump_sprites) { dump_sprites(); }
+					//Dump sprites and BG Tiles every VBlank
+					if(config::dump_sprites) 
+					{ 
+						dump_sprites();
+						if((config::mouse_click) && (dump_tile_0 < 0x100) && (dump_mode == 0)) { dump_bg_tileset_0(); }
+						else if((config::mouse_click) && (dump_tile_1 < 0x100) && (dump_mode == 1)) { dump_bg_tileset_1(); }
+						else if((config::mouse_click) && (dump_tile_win < 0x100)) { dump_bg_window(); }
+						config::mouse_click = false; 
+					}
 				}
 
 				if(gpu_clock >= 456)

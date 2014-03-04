@@ -40,6 +40,8 @@ struct gb_sprite
 struct gb_tile
 {
 	u8 raw_data[0x40];
+	std::string hash;
+	bool custom_data_loaded;
 };
 
 class GPU
@@ -58,6 +60,8 @@ class GPU
 	~GPU();
 
 	void step(int cpu_clock);
+
+	u32 dump_mode;
 
 	private:
 
@@ -101,6 +105,10 @@ class GPU
 	u8 signed_tile(u8 tile_number);
 
 	void dump_sprites();
+	void dump_bg_tileset_1();
+	void dump_bg_tileset_0();
+	void dump_bg_window();
+
 	u32 dump_tile_0;
 	u32 dump_tile_1;
 	u32 dump_tile_win;
