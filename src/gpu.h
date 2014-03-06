@@ -39,7 +39,8 @@ struct gb_sprite
 
 struct gb_tile
 {
-	u8 raw_data[0x40];
+	u32 raw_data[0x40];
+	u32 custom_data[0x40];
 	std::string hash;
 	bool custom_data_loaded;
 };
@@ -90,6 +91,8 @@ class GPU
 
 	//Sprite Hash Data
 	std::vector<std::string> sprite_hash_list;
+	std::vector<u8> tile_set_0_updates;
+	std::vector<u8> tile_set_1_updates;
 	std::map<std::string, SDL_Surface*> custom_sprite_list;
 	std::map<std::string, SDL_Surface*>::iterator custom_sprite_list_itr;
 
@@ -108,6 +111,9 @@ class GPU
 	void dump_bg_tileset_1();
 	void dump_bg_tileset_0();
 	void dump_bg_window();
+
+	void load_bg_tileset_1();
+	void load_bg_tileset_0();
 
 	u32 dump_tile_0;
 	u32 dump_tile_1;

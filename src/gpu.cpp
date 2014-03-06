@@ -47,7 +47,9 @@ GPU::GPU()
 	for(int x = 0; x < 0x100; x++)
 	{
 		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].raw_data));
+		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].custom_data));
 		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].raw_data));
+		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_0[x].custom_data));
 		tile_set_1[x].custom_data_loaded = false;
 		tile_set_0[x].custom_data_loaded = false;
 	}
@@ -390,6 +392,180 @@ void GPU::dump_bg_window()
 	}
 }
 
+/****** Loads BG tiles from files - Primarily for custom graphics ******/
+void GPU::load_bg_tileset_1()
+{
+	SDL_Surface* custom_tile = NULL;
+
+	u16 hash_salt = mem_link->memory_map[REG_BGP];
+
+	//Load BG tiles from Tile Set 1
+	for(int x = 0; x < tile_set_1_updates.size(); x++)
+	{
+		u16 tile_addr = (tile_set_1_updates[x] * 16) + 0x8000;
+
+		tile_set_1[tile_set_1_updates[x]].hash = "";
+		bool add_sprite_hash = true;
+
+		//Create a hash for the tile
+		for(int a = 0; a < 4; a++)
+		{
+			u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+			temp_hash = temp_hash ^ hash_salt;
+			tile_set_1[tile_set_1_updates[x]].hash += raw_to_64(temp_hash);
+
+			temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+			temp_hash = temp_hash ^ hash_salt;
+			tile_set_1[tile_set_1_updates[x]].hash += raw_to_64(temp_hash);
+		}	
+
+		//Search for already loaded custom sprite data
+		custom_sprite_list_itr = custom_sprite_list.find(tile_set_1[tile_set_1_updates[x]].hash);
+
+		//Check to see if hash exists already
+		for(int a = 0; a < sprite_hash_list.size(); a++)
+		{
+			if(tile_set_1[tile_set_1_updates[x]].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+		}
+
+		//If hash does not exist add it to the list, try to read custom sprite data and update map
+		if(add_sprite_hash) 
+		{ 
+			sprite_hash_list.push_back(tile_set_1[tile_set_1_updates[x]].hash);
+
+			std::string load_file = "Load/BG/" + tile_set_1[tile_set_1_updates[x]].hash + ".bmp";
+			custom_tile = SDL_LoadBMP(load_file.c_str());
+
+			//Load custom sprite data into map and raw data
+			if(custom_tile != NULL) 
+			{ 
+				custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
+				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
+
+				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+			
+				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
+
+				for(int a = 0; a < 0x40; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+
+				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+
+				tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
+			}
+		}
+
+		//If hash already exists in the list, try to read custom sprite data from the map
+		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
+		{
+			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+			
+			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
+
+			for(int a = 0; a < 0x40; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+
+			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+
+			tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
+		}
+
+		else { tile_set_1[tile_set_1_updates[x]].custom_data_loaded = false; }
+	}
+
+	//Clear tileset updates
+	tile_set_1_updates.clear();
+}
+
+/****** Loads BG tiles from files - Primarily for custom graphics ******/
+void GPU::load_bg_tileset_0()
+{
+	SDL_Surface* custom_tile = NULL;
+
+	u16 hash_salt = mem_link->memory_map[REG_BGP];
+
+	//Load BG tiles from Tile Set 1
+	for(int x = 0; x < tile_set_0_updates.size(); x++)
+	{
+		u16 tile_addr = (tile_set_0_updates[x] * 16) + 0x8800;
+
+		tile_set_0[tile_set_0_updates[x]].hash = "";
+		bool add_sprite_hash = true;
+
+		//Create a hash for the tile
+		for(int a = 0; a < 4; a++)
+		{
+			u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+			temp_hash = temp_hash ^ hash_salt;
+			tile_set_0[tile_set_0_updates[x]].hash += raw_to_64(temp_hash);
+
+			temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+			temp_hash << 8;
+			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+			temp_hash = temp_hash ^ hash_salt;
+			tile_set_0[tile_set_0_updates[x]].hash += raw_to_64(temp_hash);
+		}	
+
+		//Search for already loaded custom sprite data
+		custom_sprite_list_itr = custom_sprite_list.find(tile_set_0[tile_set_0_updates[x]].hash);
+
+		//Check to see if hash exists already
+		for(int a = 0; a < sprite_hash_list.size(); a++)
+		{
+			if(tile_set_0[tile_set_0_updates[x]].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+		}
+
+		//If hash does not exist add it to the list, try to read custom sprite data and update map
+		if(add_sprite_hash) 
+		{ 
+			sprite_hash_list.push_back(tile_set_0[tile_set_0_updates[x]].hash);
+
+			std::string load_file = "Load/BG/" + tile_set_0[tile_set_0_updates[x]].hash + ".bmp";
+			custom_tile = SDL_LoadBMP(load_file.c_str());
+
+			//Load custom sprite data into map and raw data
+			if(custom_tile != NULL) 
+			{ 
+				custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
+				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
+
+				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+			
+				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
+
+				for(int a = 0; a < 0x40; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+
+				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+
+				tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
+			}
+		}
+
+		//If hash already exists in the list, try to read custom sprite data from the map
+		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
+		{
+			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+			
+			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
+
+			for(int a = 0; a < 0x40; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+
+			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+
+			tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
+		}
+
+		else { tile_set_1[tile_set_0_updates[x]].custom_data_loaded = false; }
+	}
+
+	//Clear tileset updates
+	tile_set_0_updates.clear();
+}
+
 /****** Updates a specific tile ******/
 void GPU::update_bg_tile()
 {
@@ -429,6 +605,16 @@ void GPU::update_bg_tile()
 			//Move on to next address for tile
 			tile_addr += 2;
 		}
+
+		//Add tile to the list of updated tiles to see if custom tiles can be loaded
+		bool add_tile = true;
+
+		for(int x = 0; x < tile_set_1_updates.size(); x++)
+		{
+			if(tile_set_1_updates[x] == tile_number) { add_tile = false; }
+		}
+		
+		if(add_tile) { tile_set_1_updates.push_back(tile_number); }
 	}
 
 	pixel_counter = 0;
@@ -460,6 +646,16 @@ void GPU::update_bg_tile()
 			//Move on to next address for tile
 			tile_addr += 2;
 		}
+
+		//Add tile to the list of updated tiles to see if custom tiles can be loaded
+		bool add_tile = true;
+
+		for(int x = 0; x < tile_set_0_updates.size(); x++)
+		{
+			if(tile_set_0_updates[x] == tile_number) { add_tile = false; }
+		}
+		
+		if(add_tile) { tile_set_0_updates.push_back(tile_number); }
 	}
 }
 
@@ -533,24 +729,37 @@ void GPU::generate_scanline()
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
 
-				//Output Scanline data to RGBA
-				switch(bgp[tile_pixel])
+				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded)) 
+				{ 
+					scanline_pixel_data[current_pixel] = tile_set_1[map_entry].custom_data[y];
+				}
+
+				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded))
 				{
-					case 0: 
-						scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-						break;
+					scanline_pixel_data[current_pixel] = tile_set_0[map_entry].custom_data[y];
+				}
 
-					case 1: 
-						scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-						break;
+				else
+				{
+					//Output Scanline data to RGBA
+					switch(bgp[tile_pixel])
+					{
+						case 0: 
+							scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+							break;
 
-					case 2: 
-						scanline_pixel_data[current_pixel] = 0xFF606060;
-						break;
+						case 1: 
+							scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+							break;
 
-					case 3: 
-						scanline_pixel_data[current_pixel] = 0xFF000000;
-						break;
+						case 2: 
+							scanline_pixel_data[current_pixel] = 0xFF606060;
+							break;
+
+						case 3: 
+							scanline_pixel_data[current_pixel] = 0xFF000000;
+							break;
+					}
 				}
 				
 				//Highlight tiles on mouseover - For BG tile dumping
@@ -613,25 +822,38 @@ void GPU::generate_scanline()
 				}
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
-			
-				//Output Scanline data to RGBA
-				switch(bgp[tile_pixel])
+
+				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded)) 
+				{ 
+					scanline_pixel_data[current_pixel] = tile_set_1[map_entry].custom_data[y];
+				}
+
+				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded))
 				{
-					case 0: 
-						scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-						break;
+					scanline_pixel_data[current_pixel] = tile_set_0[map_entry].custom_data[y];
+				}
 
-					case 1: 
-						scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-						break;
+				else
+				{
+					//Output Scanline data to RGBA
+					switch(bgp[tile_pixel])
+					{
+						case 0: 
+							scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+							break;
 
-					case 2: 
-						scanline_pixel_data[current_pixel] = 0xFF606060;
-						break;
+						case 1: 
+							scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+							break;
 
-					case 3: 
-						scanline_pixel_data[current_pixel] = 0xFF000000;
-						break;
+						case 2: 
+							scanline_pixel_data[current_pixel] = 0xFF606060;
+							break;
+
+						case 3: 
+							scanline_pixel_data[current_pixel] = 0xFF000000;
+							break;
+					}
 				}
 
 				if((config::dump_sprites) && (map_entry == dump_tile_win)) { scanline_pixel_data[current_pixel] += 0x00700000; }
@@ -1095,6 +1317,13 @@ void GPU::step(int cpu_clock)
 						else if((config::mouse_click) && (dump_tile_win < 0x100)) { dump_bg_window(); }
 						config::mouse_click = false; 
 					}
+
+					//Load custom BG tiles every VBlank
+					if(config::load_sprites)
+					{
+						load_bg_tileset_1();
+						load_bg_tileset_0();
+					} 
 				}
 
 				if(gpu_clock >= 456)
