@@ -456,6 +456,8 @@ void GPU::load_bg_tileset_1()
 
 				tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
 			}
+
+			else { tile_set_1[tile_set_1_updates[x]].custom_data_loaded = false; }
 		}
 
 		//If hash already exists in the list, try to read custom sprite data from the map
@@ -543,6 +545,8 @@ void GPU::load_bg_tileset_0()
 
 				tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 			}
+
+			else { tile_set_0[tile_set_0_updates[x]].custom_data_loaded = false; }
 		}
 
 		//If hash already exists in the list, try to read custom sprite data from the map
@@ -559,7 +563,7 @@ void GPU::load_bg_tileset_0()
 			tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 		}
 
-		else { tile_set_1[tile_set_0_updates[x]].custom_data_loaded = false; }
+		else { tile_set_0[tile_set_0_updates[x]].custom_data_loaded = false; }
 	}
 
 	//Clear tileset updates
@@ -656,6 +660,21 @@ void GPU::update_bg_tile()
 		}
 		
 		if(add_tile) { tile_set_0_updates.push_back(tile_number); }
+	}
+
+	//When a new background palette is used, update the tile checklist to include all tiles
+	//Don't repeat once a new background palette has been established!
+	if((mem_link->gpu_update_addr == REG_BGP) && (last_bgp != mem_link->memory_map[REG_BGP]))
+	{
+		tile_set_0_updates.clear();
+		tile_set_1_updates.clear();
+		for(int x = 0; x < 0x100; x++) 
+		{ 
+			tile_set_0_updates.push_back(x);
+			tile_set_1_updates.push_back(x); 
+		}
+
+		last_bgp = mem_link->memory_map[REG_BGP];
 	}
 }
 

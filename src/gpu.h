@@ -39,7 +39,7 @@ struct gb_sprite
 
 struct gb_tile
 {
-	u32 raw_data[0x40];
+	u8 raw_data[0x40];
 	u32 custom_data[0x40];
 	std::string hash;
 	bool custom_data_loaded;
@@ -118,6 +118,8 @@ class GPU
 	u32 dump_tile_0;
 	u32 dump_tile_1;
 	u32 dump_tile_win;
+
+	u8 last_bgp;
 };
 
 #endif // GB_GPU
