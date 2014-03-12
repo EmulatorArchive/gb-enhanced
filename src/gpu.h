@@ -29,6 +29,7 @@
 struct gb_sprite
 {
 	u32 raw_data [0x80];
+	u32 custom_data[0x80];
 	u8 x;
 	int y; //TODO: Find a better way to handle off-screen coordinates
 	u8 tile_number;
@@ -39,7 +40,7 @@ struct gb_sprite
 
 struct gb_tile
 {
-	u8 raw_data[0x40];
+	u32 raw_data[0x40];
 	u32 custom_data[0x40];
 	std::string hash;
 	bool custom_data_loaded;
@@ -107,11 +108,13 @@ class GPU
 	void vertical_flip(u16 width, u16 height, u32 pixel_data[]);
 	u8 signed_tile(u8 tile_number);
 
+	//Custom graphics functions and variables
 	void dump_sprites();
 	void dump_bg_tileset_1();
 	void dump_bg_tileset_0();
 	void dump_bg_window();
 
+	void load_sprites();
 	void load_bg_tileset_1();
 	void load_bg_tileset_0();
 
