@@ -95,7 +95,7 @@ void GPU::dump_sprites()
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
 
 			//Save to BMP
-			std::cout<<"Saving Sprite: " << dump_file << "\n";
+			std::cout<<"GPU : Saving Sprite - " << dump_file << "\n";
 			SDL_SaveBMP(custom_sprite, dump_file.c_str());
 		}
 	}
@@ -174,7 +174,7 @@ void GPU::dump_bg_tileset_1()
 		if(SDL_MUSTLOCK(custom_tile)){ SDL_UnlockSurface(custom_tile); }
 
 		//Save to BMP
-		std::cout<<"Saving BG Tile: " << dump_file << "\n";
+		std::cout<<"GPU : Saving BG Tile - " << dump_file << "\n";
 		SDL_SaveBMP(custom_tile, dump_file.c_str());
 	}
 }
@@ -252,7 +252,7 @@ void GPU::dump_bg_tileset_0()
 		if(SDL_MUSTLOCK(custom_tile)){ SDL_UnlockSurface(custom_tile); }
 
 		//Save to BMP
-		std::cout<<"Saving BG Tile: " << dump_file << "\n";
+		std::cout<<"GPU : Saving BG Tile - " << dump_file << "\n";
 		SDL_SaveBMP(custom_tile, dump_file.c_str());
 	}
 }
@@ -272,7 +272,6 @@ void GPU::dump_bg_window()
 
 	else if(dump_mode == 3)
 	{
-		std::cout<<"Dumping Tile # " << dump_tile_win << "\n";
 		temp_dump_tile = dump_tile_0;
 		dump_tile_0 = dump_tile_win;
 		dump_bg_tileset_0();

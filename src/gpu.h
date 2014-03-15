@@ -63,8 +63,6 @@ class GPU
 
 	void step(int cpu_clock);
 
-	u32 dump_mode;
-
 	private:
 
 	u8 gpu_mode;
@@ -117,6 +115,8 @@ class GPU
 	void load_sprites();
 	void load_bg_tileset_1();
 	void load_bg_tileset_0();
+
+	u32 dump_mode;
 
 	u32 dump_tile_0;
 	u32 dump_tile_1;
