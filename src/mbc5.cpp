@@ -45,10 +45,15 @@ void MMU::mbc5_write(u16 address, u8 value)
 		else { rom_bank &= ~0x100; }
 	}
 
-	//MBC register - Select RAM bank or RTC register
+	//MBC register - Select RAM bank
 	if((address >= 0x4000) && (address <= 0x5FFF)) 
 	{ 
-		bank_bits = value;
+		bank_bits = (value & 0xF);
+
+		//Mirror RAM R-W to Bank 0 when using only 1 Bank
+		//Most MBC5 games don't rely on mirroring, but DWI&II does
+		//Nintendo specifically says to avoid it though (nice one Capcom...)
+		if(memory_map[ROM_RAMSIZE] <= 2) { bank_bits = 0; }
 	}
 }
 
@@ -67,7 +72,7 @@ u8 MMU::mbc5_read(u16 address)
 		else { return memory_map[address]; }
 	}
 
-	//Read using RAM Banking or RTC regs
+	//Read using RAM Banking
 	else if((address >= 0xA000) && (address <= 0xBFFF))
 	{
 		if(ram_banking_enabled) { return random_access_bank[bank_bits][address - 0xA000]; }
