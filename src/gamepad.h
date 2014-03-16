@@ -28,6 +28,9 @@ class GamePad
 
 	int pad;
 
+	//Shadow status for keyboard input
+	bool up_shadow, down_shadow, left_shadow, right_shadow;
+
 	SDL_Joystick* jstick;
 
 	GamePad();

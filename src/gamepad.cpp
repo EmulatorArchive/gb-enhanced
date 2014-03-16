@@ -23,6 +23,8 @@ GamePad::GamePad()
 	jstick = NULL;
 	jstick = SDL_JoystickOpen(0);
 
+	up_shadow = down_shadow = left_shadow = right_shadow = false;
+
 	if((jstick == NULL) && (SDL_NumJoysticks() >= 1)) { std::cout<<"Input : Could not initialize joystick \n"; }
 	else if((jstick == NULL) && (SDL_NumJoysticks() == 0)) { std::cout<<"Input : No joysticks detected \n"; }
 }
@@ -157,28 +159,56 @@ void GamePad::process_keyboard(int pad, bool pressed)
 	else if((pad == config::key_start) && (!pressed)) { p14 |= 0x8; }
 
 	//Emulate Right DPad press
-	else if((pad == config::key_right) && (pressed)) { p15 &= ~0x1; p15 |= 0x2; }
+	else if((pad == config::key_right) && (pressed)) { p15 &= ~0x1; p15 |= 0x2; right_shadow = true; }
 
 	//Emulate Right DPad release
-	else if((pad == config::key_right) && (!pressed)) { p15 |= 0x1; p15 |= 0x2;}
+	else if((pad == config::key_right) && (!pressed)) 
+	{
+		right_shadow = false; 
+		p15 |= 0x1;
+
+		if(left_shadow) { p15 &= ~0x2; }
+		else { p15 |= 0x2; }
+	}
 
 	//Emulate Left DPad press
-	else if((pad == config::key_left) && (pressed)) { p15 &= ~0x2; p15 |= 0x1; }
+	else if((pad == config::key_left) && (pressed)) { p15 &= ~0x2; p15 |= 0x1; left_shadow = true; }
 
 	//Emulate Left DPad release
-	else if((pad == config::key_left) && (!pressed)) { p15 |= 0x2; p15 |= 0x1; }
+	else if((pad == config::key_left) && (!pressed)) 
+	{
+		left_shadow = false;
+		p15 |= 0x2;
+		
+		if(right_shadow) { p15 &= ~0x1; }
+		else { p15 |= 0x1; } 
+	}
 
 	//Emulate Up DPad press
-	else if((pad == config::key_up) && (pressed)) { p15 &= ~0x4; p15 |= 0x8; }
+	else if((pad == config::key_up) && (pressed)) { p15 &= ~0x4; p15 |= 0x8; up_shadow = true; }
 
 	//Emulate Up DPad release
-	else if((pad == config::key_up) && (!pressed)) { p15 |= 0x4; p15 |= 0x8;}
+	else if((pad == config::key_up) && (!pressed)) 
+	{
+		up_shadow = false; 
+		p15 |= 0x4;
+		
+		if(down_shadow) { p15 &= ~0x8; }
+		else { p15 |= 0x8; }
+	}
 
 	//Emulate Down DPad press
-	else if((pad == config::key_down) && (pressed)) { p15 &= ~0x8; p15 |= 0x4;}
+	else if((pad == config::key_down) && (pressed)) { p15 &= ~0x8; p15 |= 0x4; down_shadow = true; }
 
 	//Emulate Down DPad release
-	else if((pad == config::key_down) && (!pressed)) { p15 |= 0x8; p15 |= 0x4; }
+	else if((pad == config::key_down) && (!pressed)) 
+	{
+		down_shadow = false;
+		p15 |= 0x8;
+
+		if(up_shadow) { p15 &= ~0x4; }
+		else { p15 |= 0x4; } 
+	}
 }
 
 /****** Processes input based on unique pad # for joysticks ******/
