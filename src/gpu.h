@@ -15,6 +15,7 @@
 #define GB_GPU
 
 #include "SDL/SDL.h"
+#include "SDL/SDL_opengl.h"
 #include <string>
 #include <iostream>
 #include <algorithm>
@@ -56,12 +57,14 @@ class GPU
 	SDL_Surface* gpu_screen;
 	SDL_Surface* src_screen;
 	SDL_Surface* temp_screen;
+	GLuint gpu_texture;
 
 	//Core Functions
 	GPU();
 	~GPU();
 
 	void step(int cpu_clock);
+	void opengl_init();
 
 	private:
 
@@ -123,6 +126,8 @@ class GPU
 	u32 dump_tile_win;
 
 	u8 last_bgp;
+
+	void opengl_blit();
 };
 
 #endif // GB_GPU

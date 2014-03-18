@@ -89,6 +89,13 @@ else
 	exit
 fi
 
+if g++ -c -O3 -funroll-loops opengl.cpp -lSDL -lGL; then
+	echo -e "Compiling OpenGL...			\E[32m[DONE]\E[37m"
+else
+	echo -e "Compiling OpenGL...			\E[31m[ERROR]\E[37m"
+	exit
+fi
+
 if g++ -c -O3 -funroll-loops custom_gfx.cpp -lSDL; then
 	echo -e "Compiling Custom GFX...			\E[32m[DONE]\E[37m"
 else
@@ -104,7 +111,7 @@ else
 	exit
 fi
 
-if g++ -o gbe config.o hash.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o apu.o hotkeys.o custom_gfx.o source.o -lSDL; then
+if g++ -o gbe config.o hash.o mbc1.o mbc2.o mbc3.o mbc5.o mmu.o z80.o gamepad.o filter.o gpu.o apu.o hotkeys.o opengl.o custom_gfx.o source.o -lSDL -lGL; then
 	echo -e "Linking Project...			\E[32m[DONE]\E[37m"
 else
 	echo -e "Linking Project...			\E[31m[ERROR]\E[37m"

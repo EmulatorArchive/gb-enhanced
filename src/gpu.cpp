@@ -59,6 +59,12 @@ GPU::GPU()
 	dump_tile_1 = 0xFEEDBACC;
 	dump_tile_win = 0xFEEDBACC;
 	dump_mode = 4;
+
+	if(config::use_opengl) 
+	{
+		glGenTextures(1, &gpu_texture);
+		glBindTexture(GL_TEXTURE_2D, gpu_texture);
+	}
 }
 
 /****** GPU Deconstructor ******/
@@ -668,7 +674,7 @@ void GPU::render_screen()
 	if(SDL_MUSTLOCK(src_screen)){ SDL_UnlockSurface(src_screen); }
 
 	//Scale the source image...
-	if(config::use_scaling) 
+	if((config::use_scaling) && (!config::use_opengl)) 
 	{
 		apply_scaling(src_screen, temp_screen);
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
@@ -677,7 +683,14 @@ void GPU::render_screen()
 	//Or just blit to unscaled image to screen
 	else { SDL_BlitSurface(src_screen, 0, gpu_screen, 0); }
 
-	if(SDL_Flip(gpu_screen) == -1) { std::cout<<"Could not blit? \n"; }
+	//Blit via SDL
+	if(!config::use_opengl)
+	{
+		if(SDL_Flip(gpu_screen) == -1) { std::cout<<"Could not blit? \n"; }
+	}
+
+	//Blit via OpenGL
+	else { opengl_blit(); }
 
 	//Limit FPS to 60
 	if(!config::turbo)

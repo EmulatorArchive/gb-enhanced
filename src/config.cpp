@@ -79,7 +79,7 @@ bool parse_cli_args()
 			else if(config::cli_args[x] == "--bios") { config::use_bios = true; }
 
 			//Dump sprites
-			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; config::load_sprites = false; }
+			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; config::load_sprites = false; config::use_opengl = false; }
 
 			//Load sprites
 			else if(config::cli_args[x] == "--load_sprites") { config::load_sprites = true; config::dump_sprites = false; }

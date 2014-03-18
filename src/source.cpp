@@ -69,8 +69,9 @@ int main(int argc, char* args[])
 	u8 op = 0;
 
 	//Initialize the screen - account for scaling
-	if(!config::use_scaling) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); }
-	else { gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE); }
+	if((!config::use_scaling) && (!config::use_opengl)) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); std::cout<<"Using SDL renderer... \n"; }
+	else if((config::use_scaling) && (!config::use_opengl)) { gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE); std::cout<<"Using SDL renderer... \n";}
+	else if(config::use_opengl) { gb_gpu.opengl_init(); std::cout<<"Using OpenGL renderer... \n";} 
 
 	SDL_WM_SetCaption("GBE", NULL);
 
