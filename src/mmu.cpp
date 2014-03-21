@@ -378,7 +378,7 @@ bool MMU::read_file(std::string filename)
 			cart_battery = true;
 			cart_rtc = true;
 
-			std::cout<<"MMU : Cartridge Type - MBC3 + RAM + Batter + Timer\n";
+			std::cout<<"MMU : Cartridge Type - MBC3 + RAM + Battery + Timer\n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 
@@ -436,6 +436,33 @@ bool MMU::read_file(std::string filename)
 			cart_battery = true;
 
 			std::cout<<"MMU : Cartridge Type - MBC5 + RAM + Battery\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x1C:
+			mbc_type = MBC5;
+
+			std::cout<<"MMU : Cartridge Type - MBC5 + Rumble\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+			
+		case 0x1D:
+			mbc_type = MBC5;
+			cart_ram = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC5 + RAM + Rumble\n";
+			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
+			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
+			break;
+
+		case 0x1E:
+			mbc_type = MBC5;
+			cart_ram = true;
+			cart_battery = true;
+
+			std::cout<<"MMU : Cartridge Type - MBC5 + RAM + Battery + Rumble\n";
 			cart_rom_size = 32 << memory_map[ROM_ROMSIZE];
 			std::cout<<"MMU : ROM Size - " << cart_rom_size << "KB\n";
 			break;
