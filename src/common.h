@@ -26,6 +26,9 @@ typedef signed int s32;
 
 /* ROM Header */
 
+//DMG or GBC Support
+const u16 ROM_COLOR = 0x143;
+
 //Memory Bank Controller Type
 const u16 ROM_MBC = 0x147;
 
