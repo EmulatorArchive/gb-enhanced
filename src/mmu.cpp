@@ -41,6 +41,7 @@ MMU::MMU()
 
 	rom_bank = 1;
 	ram_bank = 0;
+	wram_bank = 0;
 	bank_bits = 0;
 	bank_mode = 0;
 	ram_banking_enabled = false;
@@ -52,6 +53,10 @@ MMU::MMU()
 
 	random_access_bank.resize(0x10);
 	for(int x = 0; x < 0x10; x++) { random_access_bank[x].resize(0x2000, 0); }
+
+	working_ram_bank.resize(0x8);
+	for(int x = 0; x < 0x8; x++) { working_ram_bank[x].resize(0x1000, 0); }
+
 
 }
 
@@ -78,6 +83,16 @@ u8 MMU::read_byte(u16 address)
 	if((address >= 0xA000) && (address <= 0xBFFF) && (cart_ram) && (mbc_type != ROM_ONLY))
 	{
 		return mbc_read(address);
+	}
+
+	//In GBC mode, read from Working RAM using Banking
+	if((address >= 0xC000) && (address <= 0xDFFF) && (config::gb_type == 2)) 
+	{
+		//Read from Bank 0 always when address is within 0xC000 - 0xCFFF
+		if((address >= 0xC000) && (address <= 0xCFFF)) { return working_ram_bank[0][address-0xC000]; }
+			
+		//Read from selected Bank when address is within 0xD000 - 0xDFFF
+		else if((address >= 0xD000) && (address <= 0xDFFF)) { return working_ram_bank[wram_bank][address-0xD000]; }
 	}
 
 	//Read from P1
@@ -187,8 +202,22 @@ void MMU::write_byte(u16 address, u8 value)
 	//Internal RAM - Write to ECHO RAM as well
 	else if((address >= 0xC000) && (address <= 0xDFFF)) 
 	{
-		memory_map[address] = value;
-		if(address + 0x2000 < 0xFDFF) { memory_map[address+0x2000] = value; }
+		//DMG mode - Normal writes
+		if(config::gb_type != 2)
+		{
+			memory_map[address] = value;
+			if(address + 0x2000 < 0xFDFF) { memory_map[address+0x2000] = value; }
+		}
+
+		//GBC mode - Use banks
+		else if(config::gb_type == 2)
+		{
+			//Write to Bank 0 always when address is within 0xC000 - 0xCFFF
+			if((address >= 0xC000) && (address <= 0xCFFF)) { working_ram_bank[0][address-0xC000] = value; }
+			
+			//Write to selected Bank when address is within 0xD000 - 0xDFFF
+			else if((address >= 0xD000) && (address <= 0xDFFF)) { working_ram_bank[wram_bank][address-0xD000] = value; }
+		}
 	}
 
 	//ECHO RAM - Write to Internal RAM as well
@@ -215,6 +244,13 @@ void MMU::write_byte(u16 address, u8 value)
 		apu_update_channel = true; 
 		apu_update_addr = address; 
 	}
+
+	//SVBK - Update Working RAM bank
+	else if(address == REG_SVBK) 
+	{
+		wram_bank = value & 0x3;
+		if(wram_bank == 0) { wram_bank = 1; }
+	} 
 
 	else if(address > 0x7FFF) { memory_map[address] = value; }
 }

@@ -102,4 +102,7 @@ const u16 REG_WY = 0xFF4A;
 //Window-X
 const u16 REG_WX = 0xFF4B;
 
+//Working RAM Bank
+const u16 REG_SVBK = 0xFF70;
+
 #endif // GB_COMMON

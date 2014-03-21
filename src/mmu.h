@@ -33,8 +33,12 @@ class MMU
 	std::vector< std::vector<u8> > read_only_bank;
 	std::vector< std::vector<u8> > random_access_bank;
 
+	//Working RAM Banks - GBC only
+	std::vector< std::vector<u8> > working_ram_bank;
+
 	u16 rom_bank;
 	u8 ram_bank;
+	u8 wram_bank;
 	u8 bank_bits;
 	u8 bank_mode;
 	bool ram_banking_enabled;
