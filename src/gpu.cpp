@@ -153,8 +153,8 @@ void GPU::update_bg_tile()
 		for(int x = 0; x < 8; x++)
 		{
 			//Grab High and Low Bytes for Background Tile
-			high_byte = mem_link->memory_map[tile_addr];
-			low_byte = mem_link->memory_map[tile_addr+1];
+			high_byte = mem_link->read_byte(tile_addr);
+			low_byte = mem_link->read_byte(tile_addr+1);
 
 			//Cycle through High and Low bytes
 			for(int y = 7; y >= 0; y--)
@@ -194,8 +194,8 @@ void GPU::update_bg_tile()
 		for(int x = 0; x < 8; x++)
 		{
 			//Grab High and Low Bytes for Background Tile
-			high_byte = mem_link->memory_map[tile_addr];
-			low_byte = mem_link->memory_map[tile_addr+1];
+			high_byte = mem_link->read_byte(tile_addr);
+			low_byte = mem_link->read_byte(tile_addr+1);
 
 			//Cycle through High and Low bytes
 			for(int y = 7; y >= 0; y--)
@@ -291,7 +291,7 @@ void GPU::generate_scanline()
 
 			for(int y = (tile_line * 8); y < ((tile_line * 8) + 8); y++)
 			{
-				map_entry = mem_link->memory_map[map_addr + x];
+				map_entry = mem_link->read_byte(map_addr + x);
 
 				//Choose from the correct Tile Set
 				if(mem_link->memory_map[REG_LCDC] & 0x10) 
@@ -385,7 +385,7 @@ void GPU::generate_scanline()
 
 			for(int y = (window_line * 8); y < ((window_line * 8) + 8); y++)
 			{
-				map_entry = mem_link->memory_map[map_addr + x];
+				map_entry = mem_link->read_byte(map_addr + x);
 
 				//Choose from the correct Tile Set
 				if(mem_link->memory_map[REG_LCDC] & 0x10) 
@@ -611,8 +611,8 @@ void GPU::generate_sprites()
 			for(int y = 0; y < sprite_height; y++)
 			{
 				//Grab High and Low Bytes for Tile
-				high_byte = mem_link->memory_map[sprite_tile_addr];
-				low_byte = mem_link->memory_map[sprite_tile_addr+1];
+				high_byte = mem_link->read_byte(sprite_tile_addr);
+				low_byte = mem_link->read_byte(sprite_tile_addr+1);
 
 				//Cycle through High and Low bytes
 				for(int z = 7; z >= 0; z--)

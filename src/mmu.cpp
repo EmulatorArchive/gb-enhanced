@@ -42,6 +42,7 @@ MMU::MMU()
 	rom_bank = 1;
 	ram_bank = 0;
 	wram_bank = 0;
+	vram_bank = 0;
 	bank_bits = 0;
 	bank_mode = 0;
 	ram_banking_enabled = false;
@@ -56,6 +57,9 @@ MMU::MMU()
 
 	working_ram_bank.resize(0x8);
 	for(int x = 0; x < 0x8; x++) { working_ram_bank[x].resize(0x1000, 0); }
+
+	video_ram.resize(0x2);
+	for(int x = 0; x < 0x2; x++) { video_ram[x].resize(0x2000, 0); }
 }
 
 /****** MMU Deconstructor ******/
@@ -81,6 +85,16 @@ u8 MMU::read_byte(u16 address)
 	if((address >= 0xA000) && (address <= 0xBFFF) && (cart_ram) && (mbc_type != ROM_ONLY))
 	{
 		return mbc_read(address);
+	}
+
+	//Read from VRAM, GBC uses banking
+	if((address >= 0x8000) && (address <= 0x9FFF))
+	{
+		//GBC read from VRAM Bank 1
+		if((vram_bank == 1) && (config::gb_type == 2)) { return video_ram[1][address-0x8000]; }
+		
+		//GBC read from VRAM Bank 0 - DMG read normally, also from Bank 0, though it doesn't use banking technically
+		else { return video_ram[0][address-0x8000]; }
 	}
 
 	//In GBC mode, read from Working RAM using Banking
@@ -140,19 +154,22 @@ void MMU::write_byte(u16 address, u8 value)
 {
 	if(mbc_type != ROM_ONLY) { mbc_write(address, value); }
 
-	//VRAM - Background tiles
-	if((address >= 0x8000) && (address <= 0x97FF))
+	//Read from VRAM, GBC uses banking
+	if((address >= 0x8000) && (address <= 0x9FFF))
 	{
-		memory_map[address] = value;
-		gpu_update_bg_tile = true;
-		gpu_update_addr = address;
-		if(address <= 0x8FFF) { gpu_update_sprite = true; }
-	}
+		//GBC read from VRAM Bank 1
+		if((vram_bank == 1) && (config::gb_type == 2)) { video_ram[1][address-0x8000] = value; }
+		
+		//GBC read from VRAM Bank 0 - DMG read normally, also from Bank 0, though it doesn't use banking technically
+		else { video_ram[0][address-0x8000] = value; }
 
-	//VRAM - Background map
-	else if((address >= 0x9800) && (address <= 0x9FFF))
-	{
-		memory_map[address] = value;
+		//VRAM - Background tiles update
+		if((address >= 0x8000) && (address <= 0x97FF))
+		{
+			gpu_update_bg_tile = true;
+			gpu_update_addr = address;
+			if(address <= 0x8FFF) { gpu_update_sprite = true; }
+		}
 	}	
 	
 	//BGP
@@ -252,6 +269,9 @@ void MMU::write_byte(u16 address, u8 value)
 
 		memory_map[address] = value;
 	}
+
+	//VBK - Update VRAM bank
+	else if(address == REG_VBK) { vram_bank = value & 0x1; }
 
 	//SVBK - Update Working RAM bank
 	else if(address == REG_SVBK) 

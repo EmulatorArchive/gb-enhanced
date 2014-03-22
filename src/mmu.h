@@ -36,9 +36,12 @@ class MMU
 	//Working RAM Banks - GBC only
 	std::vector< std::vector<u8> > working_ram_bank;
 
+	std::vector< std::vector<u8> > video_ram;
+
 	u16 rom_bank;
 	u8 ram_bank;
 	u8 wram_bank;
+	u8 vram_bank;
 	u8 bank_bits;
 	u8 bank_mode;
 	bool ram_banking_enabled;

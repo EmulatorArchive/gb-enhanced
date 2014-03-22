@@ -117,6 +117,9 @@ const u16 REG_HDMA4 = 0xFF54;
 //HDMA Control
 const u16 REG_HDMA5 = 0xFF55;
 
+//Video RAM Bank
+const u16 REG_VBK = 0xFF4F;
+
 //Working RAM Bank
 const u16 REG_SVBK = 0xFF70;
 
