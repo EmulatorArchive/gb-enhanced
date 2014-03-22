@@ -320,25 +320,88 @@ void GPU::generate_scanline()
 
 				else
 				{
-					//Output Scanline data to RGBA
-					switch(bgp[tile_pixel])
+					//Output Scanline data to RGBA - DMG Mode
+					if(config::gb_type != 2)
 					{
-						case 0: 
-							scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-							break;
+						//Output Scanline data to RGBA
+						switch(bgp[tile_pixel])
+						{
+							case 0: 
+								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+								break;
 
-						case 1: 
-							scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-							break;
+							case 1: 
+								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+								break;
 
-						case 2: 
-							scanline_pixel_data[current_pixel] = 0xFF606060;
-							break;
+							case 2: 
+								scanline_pixel_data[current_pixel] = 0xFF606060;
+								break;
 
-						case 3: 
-							scanline_pixel_data[current_pixel] = 0xFF000000;
-							break;
+							case 3: 
+								scanline_pixel_data[current_pixel] = 0xFF000000;
+								break;
+						}
 					}
+
+					//Output Scanline data to RGBA - GBC Mode
+					else
+					{
+						u8 old_vram_bank = mem_link->vram_bank;
+						u8 bg_tile_bank = 0;
+						u8 bg_palette = 0;
+						u16 tile_addr = 0;
+						gb_tile temp_bg_tile;
+						u32 bg_counter = 0;
+
+						u8 high_byte, low_byte = 0;
+						u8 high_bit, low_bit = 0;
+						u8 final_byte = 0;
+						
+						//Always read CHR data from Bank 0
+						mem_link->vram_bank = 0;
+						map_entry = mem_link->read_byte(map_addr + x);
+
+						//Read BG Map attributes from Bank 1
+						mem_link->vram_bank = 1;
+						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
+						bg_palette = bg_map_attribute & 0x7;
+
+						//Read data into temp tile from VRAM bank
+						if(bg_map_attribute & 0x8) { mem_link->vram_bank = 1; }
+						else { mem_link->vram_bank = 0; }
+
+						if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_addr = 0x8000 + (map_entry * 16); }
+						else { map_entry = signed_tile(map_entry); tile_addr = 0x8800 + (map_entry * 16); }
+
+						//Generate tile for Tile Set #1
+						for(int x = 0; x < 8; x++)
+						{
+							//Grab High and Low Bytes for Background Tile
+							high_byte = mem_link->read_byte(tile_addr);
+							low_byte = mem_link->read_byte(tile_addr+1);
+
+							//Cycle through High and Low bytes
+							for(int y = 7; y >= 0; y--)
+							{
+								high_bit = (high_byte >> y) & 0x01;
+								low_bit = (low_byte >> y) & 0x01;
+								final_byte = high_bit + (low_bit * 2);
+
+								temp_bg_tile.raw_data[bg_counter] = final_byte;
+								bg_counter++;
+							}
+			
+							//Move on to next address for tile
+							tile_addr += 2;
+						}
+
+						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_bg_tile.raw_data); }
+						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_bg_tile.raw_data); }
+
+						scanline_pixel_data[current_pixel] = background_colors_final[temp_bg_tile.raw_data[y]][bg_palette];
+						mem_link->vram_bank = old_vram_bank;
+					}	
 				}
 				
 				//Highlight tiles on mouseover - For BG tile dumping
@@ -761,11 +824,56 @@ void GPU::step(int cpu_clock)
 		mem_link->gpu_update_sprite = false;
 	}
 
+	//Update background color palettes on the GBC
+	if((mem_link->gpu_update_bg_colors) && (config::gb_type == 2))
+	{
+		u8 hi_lo = (mem_link->memory_map[REG_BCPS] & 0x1);
+		u8 color = (mem_link->memory_map[REG_BCPS] >> 1) & 0x3;
+		u8 palette = (mem_link->memory_map[REG_BCPS] >> 3) & 0x7;
+		u8 auto_increment = (mem_link->memory_map[REG_BCPS]) & 0x80;
+
+		//Update lower-nibble of color
+		if(hi_lo == 0) 
+		{ 
+			background_colors_raw[color][palette] &= 0xFF00;
+			background_colors_raw[color][palette] |= mem_link->memory_map[REG_BCPD];
+		}
+
+		//Update upper-nibble of color
+		else
+		{
+			background_colors_raw[color][palette] &= 0xFF;
+			background_colors_raw[color][palette] |= (mem_link->memory_map[REG_BCPD] << 8);
+		}
+
+		//Auto update palette index
+		if(mem_link->memory_map[REG_BCPS] & 0x80)
+		{
+			u8 new_index = mem_link->memory_map[REG_BCPS] & 0x3F;
+			new_index = (new_index + 1) & 0x3F;
+			mem_link->memory_map[REG_BCPS] = (0x80 | new_index);
+		}
+
+		//Convert RGB5 to 32-bit ARGB
+		u16 color_bytes = background_colors_raw[color][palette];
+
+		u8 red = ((color_bytes & 0x1F) * 8);
+		color_bytes >>= 5;
+
+		u8 green = ((color_bytes & 0x1F) * 8);
+		color_bytes >>= 5;
+
+		u8 blue = ((color_bytes & 0x1F) * 8);
+
+		background_colors_final[color][palette] = 0xFF000000 | (red << 16) | (green << 8) | (blue);
+		mem_link->background_colors_raw[color][palette] = background_colors_raw[color][palette];
+
+		mem_link->gpu_update_bg_colors = false;
+	}
+
 	//Update sprite color palettes on the GBC
 	if((mem_link->gpu_update_sprite_colors) && (config::gb_type == 2))
 	{
-		//std::cout<<"Omagawd ccolorz!\n";
-
 		u8 hi_lo = (mem_link->memory_map[REG_OCPS] & 0x1);
 		u8 color = (mem_link->memory_map[REG_OCPS] >> 1) & 0x3;
 		u8 palette = (mem_link->memory_map[REG_OCPS] >> 3) & 0x7;
@@ -806,7 +914,6 @@ void GPU::step(int cpu_clock)
 
 		sprite_colors_final[color][palette] = 0xFF000000 | (red << 16) | (green << 8) | (blue);
 		mem_link->sprite_colors_raw[color][palette] = sprite_colors_raw[color][palette];
-		//std::cout<<"Final Color for Palette " << (int)palette << " - Color # " << (int)color << ": " << std::hex << sprite_colors_final[color][palette] << "\n";
 
 		mem_link->gpu_update_sprite_colors = false;
 	}

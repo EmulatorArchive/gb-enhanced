@@ -110,7 +110,29 @@ u8 MMU::read_byte(u16 address)
 		else if((address >= 0xD000) && (address <= 0xDFFF)) { return working_ram_bank[wram_bank][address-0xD000]; }
 	}
 
-	else if(address == REG_OCPD) 
+	//Read background color palette data
+	if(address == REG_BCPD)
+	{ 
+		u8 hi_lo = (memory_map[REG_BCPS] & 0x1);
+		u8 color = (memory_map[REG_BCPS] >> 1) & 0x3;
+		u8 palette = (memory_map[REG_BCPS] >> 3) & 0x7;
+
+		//Read lower-nibble of color
+		if(hi_lo == 0) 
+		{ 
+			return (background_colors_raw[color][palette] & 0xFF);
+		}
+
+		//Read upper-nibble of color
+		else
+		{
+			return (background_colors_raw[color][palette] >> 8);
+		}
+	}
+	
+
+	//Read sprite color palette data
+	if(address == REG_OCPD) 
 	{ 
 		u8 hi_lo = (memory_map[REG_OCPS] & 0x1);
 		u8 color = (memory_map[REG_OCPS] >> 1) & 0x3;
@@ -300,11 +322,18 @@ void MMU::write_byte(u16 address, u8 value)
 	}
 		
 
+	//BCPD - Update background color palettes
+	else if(address == REG_BCPD)
+	{
+		gpu_update_bg_colors = true;
+		memory_map[address] = value;
+	}
+
 	//OCPD - Update sprite color palettes
 	else if(address == REG_OCPD)
 	{
-		memory_map[address] = value;
 		gpu_update_sprite_colors = true;
+		memory_map[address] = value;
 	}
 
 	//SVBK - Update Working RAM bank

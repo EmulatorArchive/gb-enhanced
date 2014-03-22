@@ -47,6 +47,7 @@ class MMU
 	bool ram_banking_enabled;
 
 	u16 sprite_colors_raw[4][8];
+	u16 background_colors_raw[4][8];
 
 	GamePad pad;
 
