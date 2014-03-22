@@ -46,6 +46,8 @@ class MMU
 	u8 bank_mode;
 	bool ram_banking_enabled;
 
+	u16 sprite_colors_raw[4][8];
+
 	GamePad pad;
 
 	bool in_bios;
@@ -98,6 +100,8 @@ class MMU
 	bool gpu_update_sprite;
 	bool gpu_reset_ticks;
 	bool gpu_hdma_in_progress;
+	bool gpu_update_sprite_colors;
+	bool gpu_update_bg_colors;
 	u16 gpu_update_addr;
 
 	//Variables read by the APU

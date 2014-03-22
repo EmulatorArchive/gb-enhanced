@@ -89,6 +89,12 @@ class GPU
 	u8 bgp[4];
 	u8 obp[4][2];
 
+	u16 sprite_colors_raw[4][8];
+	u16 background_colors_raw[4][8];
+
+	u32 sprite_colors_final[4][8];
+	u32 background_colors_final[4][8]; 
+
 	gb_sprite sprites[40];
 
 	//HDMA

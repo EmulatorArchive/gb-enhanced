@@ -120,6 +120,18 @@ const u16 REG_HDMA5 = 0xFF55;
 //Video RAM Bank
 const u16 REG_VBK = 0xFF4F;
 
+//Background Color Palette Select
+const u16 REG_BCPS = 0xFF68;
+
+//Background Color Palette Data
+const u16 REG_BCPD = 0xFF69;
+
+//Object Color Palette Select
+const u16 REG_OCPS = 0xFF6A;
+
+//Object Color Palette Data
+const u16 REG_OCPD = 0xFF6B;
+
 //Working RAM Bank
 const u16 REG_SVBK = 0xFF70;
 

@@ -25,6 +25,9 @@ MMU::MMU()
 	gpu_update_sprite = false;
 	gpu_reset_ticks = false;
 	gpu_update_addr = 0;
+	gpu_hdma_in_progress = false;
+	gpu_update_sprite_colors = false;
+	gpu_update_bg_colors = false;
 
 	apu_update_channel = false;
 	apu_update_addr = 0;
@@ -41,7 +44,7 @@ MMU::MMU()
 
 	rom_bank = 1;
 	ram_bank = 0;
-	wram_bank = 0;
+	wram_bank = 1;
 	vram_bank = 0;
 	bank_bits = 0;
 	bank_mode = 0;
@@ -105,6 +108,25 @@ u8 MMU::read_byte(u16 address)
 			
 		//Read from selected Bank when address is within 0xD000 - 0xDFFF
 		else if((address >= 0xD000) && (address <= 0xDFFF)) { return working_ram_bank[wram_bank][address-0xD000]; }
+	}
+
+	else if(address == REG_OCPD) 
+	{ 
+		u8 hi_lo = (memory_map[REG_OCPS] & 0x1);
+		u8 color = (memory_map[REG_OCPS] >> 1) & 0x3;
+		u8 palette = (memory_map[REG_OCPS] >> 3) & 0x7;
+
+		//Read lower-nibble of color
+		if(hi_lo == 0) 
+		{ 
+			return (sprite_colors_raw[color][palette] & 0xFF);
+		}
+
+		//Read upper-nibble of color
+		else
+		{
+			return (sprite_colors_raw[color][palette] >> 8);
+		}
 	}
 
 	//Read from P1
@@ -210,7 +232,7 @@ void MMU::write_byte(u16 address, u8 value)
 	{
 		u16 dma_orig = value << 8;
 		u16 dma_dest = 0xFE00;
-		while (dma_dest < 0xFEA0) { memory_map[dma_dest++] = memory_map[dma_orig++]; }
+		while (dma_dest < 0xFEA0) { write_byte(dma_dest++, read_byte(dma_orig++)); }
 		gpu_update_sprite = true;
 	}
 
@@ -271,14 +293,27 @@ void MMU::write_byte(u16 address, u8 value)
 	}
 
 	//VBK - Update VRAM bank
-	else if(address == REG_VBK) { vram_bank = value & 0x1; }
+	else if(address == REG_VBK) 
+	{ 
+		vram_bank = value & 0x1; 
+		memory_map[address] = value; 
+	}
+		
+
+	//OCPD - Update sprite color palettes
+	else if(address == REG_OCPD)
+	{
+		memory_map[address] = value;
+		gpu_update_sprite_colors = true;
+	}
 
 	//SVBK - Update Working RAM bank
 	else if(address == REG_SVBK) 
 	{
-		wram_bank = value & 0x3;
+		wram_bank = value & 0x7;
 		if(wram_bank == 0) { wram_bank = 1; }
-	} 
+		memory_map[address] = value;
+	}
 
 	else if(address > 0x7FFF) { memory_map[address] = value; }
 }
