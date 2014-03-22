@@ -91,6 +91,9 @@ class GPU
 
 	gb_sprite sprites[40];
 
+	//HDMA
+	u8 current_hdma_line;
+
 	//Sprite Hash Data
 	std::vector<std::string> sprite_hash_list;
 	std::vector<u8> tile_set_0_updates;

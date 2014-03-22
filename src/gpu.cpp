@@ -65,6 +65,8 @@ GPU::GPU()
 		glGenTextures(1, &gpu_texture);
 		glBindTexture(GL_TEXTURE_2D, gpu_texture);
 	}
+
+	current_hdma_line = 0;
 }
 
 /****** GPU Deconstructor ******/
@@ -739,12 +741,49 @@ void GPU::step(int cpu_clock)
 		//Handle GPU Modes
 		switch(gpu_mode)
 		{
-
 			//HBlank - Mode 0
 			case 0 : 
 				//Render scanline when 1st entering Mode 0
 				if(gpu_mode_change != 0)
 				{
+					//On the GBC, do HDMA now
+					if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress))
+					{
+						std::cout<<"HDMA in progress!\n";
+
+						u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
+						u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
+						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x40) + 1;
+
+						//Horizontal Blanking DMA
+						if(mem_link->memory_map[REG_HDMA5] & 0x80)
+						{
+							start_addr += (current_hdma_line * 16);
+
+							for(u16 x = 0; x < 16; x++)
+							{
+								mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
+							}
+							
+							current_hdma_line++;
+
+							if(current_hdma_line == line_transfer_count) { mem_link->gpu_hdma_in_progress = false; }
+						}
+
+						//General Purpose DMA
+						else
+						{
+							for(u16 x = 0; x < line_transfer_count * 16; x++)
+							{
+								mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
+							}
+
+							mem_link->gpu_hdma_in_progress = false;
+						}
+					}
+
+					if((config::gb_type == 2) && (!mem_link->gpu_hdma_in_progress)) { current_hdma_line = 0; }
+
 					generate_scanline();
 					gpu_mode_change = 0;
 					

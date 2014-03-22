@@ -94,6 +94,7 @@ class MMU
 	bool gpu_update_bg_tile;
 	bool gpu_update_sprite;
 	bool gpu_reset_ticks;
+	bool gpu_hdma_in_progress;
 	u16 gpu_update_addr;
 
 	//Variables read by the APU

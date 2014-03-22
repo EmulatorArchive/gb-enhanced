@@ -102,6 +102,21 @@ const u16 REG_WY = 0xFF4A;
 //Window-X
 const u16 REG_WX = 0xFF4B;
 
+//HDMA Source High
+const u16 REG_HDMA1 = 0xFF51;
+
+//HDMA Source Low
+const u16 REG_HDMA2 = 0xFF52;
+
+//HDMA Destination High
+const u16 REG_HDMA3 = 0xFF53;
+
+//HDMA Destination Low
+const u16 REG_HDMA4 = 0xFF54;
+
+//HDMA Control
+const u16 REG_HDMA5 = 0xFF55;
+
 //Working RAM Bank
 const u16 REG_SVBK = 0xFF70;
 

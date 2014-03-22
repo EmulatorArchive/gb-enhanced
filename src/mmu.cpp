@@ -56,8 +56,6 @@ MMU::MMU()
 
 	working_ram_bank.resize(0x8);
 	for(int x = 0; x < 0x8; x++) { working_ram_bank[x].resize(0x1000, 0); }
-
-
 }
 
 /****** MMU Deconstructor ******/
@@ -243,6 +241,16 @@ void MMU::write_byte(u16 address, u8 value)
 		memory_map[address] = value;
 		apu_update_channel = true; 
 		apu_update_addr = address; 
+	}
+
+	//HDMA transfer
+	else if(address == REG_HDMA5)
+	{
+		//Halt Horizontal DMA transfer if one is already in progress and 0 is now written to Bit 7
+		if((memory_map[address] & 0x80) && ((value & 0x80) == 0)) { gpu_hdma_in_progress = false; }
+		else { gpu_hdma_in_progress = true; }
+
+		memory_map[address] = value;
 	}
 
 	//SVBK - Update Working RAM bank
