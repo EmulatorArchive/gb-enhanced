@@ -110,6 +110,8 @@ int main(int argc, char* args[])
 			z80.exec_op(op);
 		}
 
+		if(z80.double_speed) { z80.cycles /= 2; }
+
 		//Update Z80 clock
 		z80.cpu_clock_t = z80.cycles;
 		z80.cpu_clock_m = z80.cycles/4;

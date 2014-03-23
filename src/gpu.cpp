@@ -918,6 +918,22 @@ void GPU::step(int cpu_clock)
 		mem_link->gpu_update_sprite_colors = false;
 	}
 
+	//Do General HDMA
+	if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && ((mem_link->memory_map[REG_HDMA5] & 0x80) == 0))
+	{
+		u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
+		u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
+		u8 transfer_byte_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
+
+		for(u16 x = 0; x < (transfer_byte_count * 16); x++)
+		{
+			mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
+		}
+
+		mem_link->gpu_hdma_in_progress = false;
+		mem_link->memory_map[REG_HDMA5] = 0;
+	}
+
 	//Perform LCD operations only when LCD is enabled
 	if(lcd_enabled)
 	{
@@ -932,13 +948,11 @@ void GPU::step(int cpu_clock)
 				if(gpu_mode_change != 0)
 				{
 					//On the GBC, do HDMA now
-					if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress))
+					if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && (mem_link->memory_map[REG_HDMA5] & 0x80))
 					{
-						std::cout<<"HDMA in progress!\n";
-
 						u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
 						u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
-						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x40) + 1;
+						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
 
 						//Horizontal Blanking DMA
 						if(mem_link->memory_map[REG_HDMA5] & 0x80)
@@ -955,20 +969,9 @@ void GPU::step(int cpu_clock)
 							if(current_hdma_line == line_transfer_count) 
 							{ 
 								mem_link->gpu_hdma_in_progress = false;
-								mem_link->memory_map[REG_HDMA5] = 0;
+								mem_link->memory_map[REG_HDMA5] &= ~0x80;
+								current_hdma_line = 0;
 							}
-						}
-
-						//General Purpose DMA
-						else
-						{
-							for(u16 x = 0; x < line_transfer_count * 16; x++)
-							{
-								mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
-							}
-
-							mem_link->gpu_hdma_in_progress = false;
-							mem_link->memory_map[REG_HDMA5] = 0;
 						}
 					}
 

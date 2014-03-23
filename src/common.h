@@ -102,6 +102,9 @@ const u16 REG_WY = 0xFF4A;
 //Window-X
 const u16 REG_WX = 0xFF4B;
 
+//Double Speed Control
+const u16 REG_KEY1 = 0xFF4D;
+
 //HDMA Source High
 const u16 REG_HDMA1 = 0xFF51;
 
