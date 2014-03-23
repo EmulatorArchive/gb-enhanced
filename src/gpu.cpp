@@ -50,7 +50,11 @@ GPU::GPU()
 		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].raw_data));
 		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].custom_data));
 		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].raw_data));
-		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_0[x].custom_data));
+		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].custom_data));
+		memset(gbc_tile_set_1[x][0].raw_data, 0, sizeof(gbc_tile_set_1[x][0].raw_data));
+		memset(gbc_tile_set_1[x][1].raw_data, 0, sizeof(gbc_tile_set_1[x][1].raw_data));
+		memset(gbc_tile_set_0[x][0].raw_data, 0, sizeof(gbc_tile_set_1[x][0].raw_data));
+		memset(gbc_tile_set_0[x][1].raw_data, 0, sizeof(gbc_tile_set_1[x][1].raw_data));
 		tile_set_1[x].custom_data_loaded = false;
 		tile_set_0[x].custom_data_loaded = false;
 	}
@@ -131,7 +135,7 @@ void GPU::scanline_compare()
 	else { mem_link->memory_map[REG_STAT] &= ~0x4; }
 }
 
-/****** Updates a specific tile ******/
+/****** Updates a specific tile - DMG Mode ******/
 void GPU::update_bg_tile()
 {
 	u8 high_byte, low_byte = 0;
@@ -140,18 +144,22 @@ void GPU::update_bg_tile()
 
 	u16 tile_addr = 0;
 	u8 tile_number = 0;
+	u8 tile_row = 0;
 
 	u16 pixel_counter = 0;
 
-	//Update Tile Set #1
-	if((mem_link->gpu_update_addr >= 0x8000) && (mem_link->gpu_update_addr <= 0x8FFF))
+	//Update tiles for every address that was written to since last update
+	for(int x = 0; x < mem_link->gpu_update_addr.size(); x++)
 	{
-		tile_number = (mem_link->gpu_update_addr - 0x8000)/16;
-		tile_addr = 0x8000 + (tile_number * 16);
-
-		//Generate tile for Tile Set #1
-		for(int x = 0; x < 8; x++)
+		//Update a tile row for Tile Set #1
+		if((mem_link->gpu_update_addr[x] >= 0x8000) && (mem_link->gpu_update_addr[x] <= 0x8FFF))
 		{
+			tile_number = (mem_link->gpu_update_addr[x] - 0x8000)/16;
+			tile_addr = 0x8000 + (tile_number * 16);
+			tile_row = (mem_link->gpu_update_addr[x] - tile_addr)/2;
+			tile_addr += (tile_row * 2);
+			pixel_counter = (tile_row * 8);
+			
 			//Grab High and Low Bytes for Background Tile
 			high_byte = mem_link->read_byte(tile_addr);
 			low_byte = mem_link->read_byte(tile_addr+1);
@@ -166,33 +174,27 @@ void GPU::update_bg_tile()
 				tile_set_1[tile_number].raw_data[pixel_counter] = final_byte;
 				pixel_counter++;
 			}
-			
-			//Move on to next address for tile
-			tile_addr += 2;
-		}
 
-		//Add tile to the list of updated tiles to see if custom tiles can be loaded
-		bool add_tile = true;
+			//Add tile to the list of updated tiles to see if custom tiles can be loaded
+			bool add_tile = true;
 
-		for(int x = 0; x < tile_set_1_updates.size(); x++)
-		{
-			if(tile_set_1_updates[x] == tile_number) { add_tile = false; }
-		}
+			for(int y = 0; y < tile_set_1_updates.size(); y++)
+			{
+				if(tile_set_1_updates[y] == tile_number) { add_tile = false; }
+			}
 		
-		if(add_tile) { tile_set_1_updates.push_back(tile_number); }
-	}
+			if(add_tile) { tile_set_1_updates.push_back(tile_number); }
+		}
 
-	pixel_counter = 0;
-
-	//Update Tile Set #0
-	if((mem_link->gpu_update_addr >= 0x8800) && (mem_link->gpu_update_addr <= 0x97FF))
-	{
-		tile_number = (mem_link->gpu_update_addr - 0x8800)/16;
-		tile_addr = 0x8800 + (tile_number * 16);
-
-		//Generate tile for Tile Set #0
-		for(int x = 0; x < 8; x++)
+		//Update a tile row for Tile Set #1
+		if((mem_link->gpu_update_addr[x] >= 0x8800) && (mem_link->gpu_update_addr[x] <= 0x97FF))
 		{
+			tile_number = (mem_link->gpu_update_addr[x] - 0x8800)/16;
+			tile_addr = 0x8800 + (tile_number * 16);
+			tile_row = (mem_link->gpu_update_addr[x] - tile_addr)/2;
+			tile_addr += (tile_row * 2);
+			pixel_counter = (tile_row * 8);
+			
 			//Grab High and Low Bytes for Background Tile
 			high_byte = mem_link->read_byte(tile_addr);
 			low_byte = mem_link->read_byte(tile_addr+1);
@@ -207,36 +209,105 @@ void GPU::update_bg_tile()
 				tile_set_0[tile_number].raw_data[pixel_counter] = final_byte;
 				pixel_counter++;
 			}
-			
-			//Move on to next address for tile
-			tile_addr += 2;
-		}
 
-		//Add tile to the list of updated tiles to see if custom tiles can be loaded
-		bool add_tile = true;
+			//Add tile to the list of updated tiles to see if custom tiles can be loaded
+			bool add_tile = true;
 
-		for(int x = 0; x < tile_set_0_updates.size(); x++)
-		{
-			if(tile_set_0_updates[x] == tile_number) { add_tile = false; }
-		}
+			for(int y = 0; y < tile_set_0_updates.size(); y++)
+			{
+				if(tile_set_0_updates[y] == tile_number) { add_tile = false; }
+			}
 		
-		if(add_tile) { tile_set_0_updates.push_back(tile_number); }
-	}
-
-	//When a new background palette is used, update the tile checklist to include all tiles
-	//Don't repeat once a new background palette has been established!
-	if((mem_link->gpu_update_addr == REG_BGP) && (last_bgp != mem_link->memory_map[REG_BGP]))
-	{
-		tile_set_0_updates.clear();
-		tile_set_1_updates.clear();
-		for(int x = 0; x < 0x100; x++) 
-		{ 
-			tile_set_0_updates.push_back(x);
-			tile_set_1_updates.push_back(x); 
+			if(add_tile) { tile_set_0_updates.push_back(tile_number); }
 		}
 
-		last_bgp = mem_link->memory_map[REG_BGP];
+		//When a new background palette is used, update the tile checklist to include all tiles
+		//Don't repeat once a new background palette has been established!
+		if((mem_link->gpu_update_addr[x] == REG_BGP) && (last_bgp != mem_link->memory_map[REG_BGP]))
+		{
+			tile_set_0_updates.clear();
+			tile_set_1_updates.clear();
+			for(int y = 0; y < 0x100; y++) 
+			{ 
+				tile_set_0_updates.push_back(y);
+				tile_set_1_updates.push_back(y); 
+			}
+
+			last_bgp = mem_link->memory_map[REG_BGP];
+		}
 	}
+
+	mem_link->gpu_update_addr.clear();
+}
+
+/****** Updates a specific tile - GBC Mode ******/
+void GPU::update_gbc_bg_tile()
+{
+	u8 high_byte, low_byte = 0;
+	u8 high_bit, low_bit = 0;
+	u8 final_byte = 0;
+
+	u16 tile_addr = 0;
+	u8 tile_number = 0;
+	u8 tile_row = 0;
+
+	u16 pixel_counter = 0;
+
+	//Update tiles for every address that was written to since last update
+	for(int x = 0; x < mem_link->gpu_update_addr.size(); x++)
+	{
+		//Update a tile row for Tile Set #1
+		if((mem_link->gpu_update_addr[x] >= 0x8000) && (mem_link->gpu_update_addr[x] <= 0x8FFF))
+		{
+			tile_number = (mem_link->gpu_update_addr[x] - 0x8000)/16;
+			tile_addr = 0x8000 + (tile_number * 16);
+			tile_row = (mem_link->gpu_update_addr[x] - tile_addr)/2;
+			tile_addr += (tile_row * 2);
+			pixel_counter = (tile_row * 8);
+			
+			//Grab High and Low Bytes for Background Tile
+			high_byte = mem_link->read_byte(tile_addr);
+			low_byte = mem_link->read_byte(tile_addr+1);
+
+			//Cycle through High and Low bytes
+			for(int y = 7; y >= 0; y--)
+			{
+				high_bit = (high_byte >> y) & 0x01;
+				low_bit = (low_byte >> y) & 0x01;
+				final_byte = high_bit + (low_bit * 2);
+
+				gbc_tile_set_1[tile_number][mem_link->vram_bank].raw_data[pixel_counter] = final_byte;
+				pixel_counter++;
+			}
+		}
+
+		//Update a tile row for Tile Set #1
+		if((mem_link->gpu_update_addr[x] >= 0x8800) && (mem_link->gpu_update_addr[x] <= 0x97FF))
+		{
+			tile_number = (mem_link->gpu_update_addr[x] - 0x8800)/16;
+			tile_addr = 0x8800 + (tile_number * 16);
+			tile_row = (mem_link->gpu_update_addr[x] - tile_addr)/2;
+			tile_addr += (tile_row * 2);
+			pixel_counter = (tile_row * 8);
+			
+			//Grab High and Low Bytes for Background Tile
+			high_byte = mem_link->read_byte(tile_addr);
+			low_byte = mem_link->read_byte(tile_addr+1);
+
+			//Cycle through High and Low bytes
+			for(int y = 7; y >= 0; y--)
+			{
+				high_bit = (high_byte >> y) & 0x01;
+				low_bit = (low_byte >> y) & 0x01;
+				final_byte = high_bit + (low_bit * 2);
+
+				gbc_tile_set_0[tile_number][mem_link->vram_bank].raw_data[pixel_counter] = final_byte;
+				pixel_counter++;
+			}
+		}
+	}
+
+	mem_link->gpu_update_addr.clear();
 }
 
 /****** Prepares scanline for rendering - Pulls data from BG, Window, and Sprites ******/
@@ -350,13 +421,7 @@ void GPU::generate_scanline()
 						u8 old_vram_bank = mem_link->vram_bank;
 						u8 bg_tile_bank = 0;
 						u8 bg_palette = 0;
-						u16 tile_addr = 0;
-						gb_tile temp_bg_tile;
-						u32 bg_counter = 0;
-
-						u8 high_byte, low_byte = 0;
-						u8 high_bit, low_bit = 0;
-						u8 final_byte = 0;
+						gbc_tile temp_tile;
 						
 						//Always read CHR data from Bank 0
 						mem_link->vram_bank = 0;
@@ -366,40 +431,15 @@ void GPU::generate_scanline()
 						mem_link->vram_bank = 1;
 						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
 						bg_palette = bg_map_attribute & 0x7;
+						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
 
-						//Read data into temp tile from VRAM bank
-						if(bg_map_attribute & 0x8) { mem_link->vram_bank = 1; }
-						else { mem_link->vram_bank = 0; }
+						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
+						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
 
-						if(mem_link->memory_map[REG_LCDC] & 0x10) { tile_addr = 0x8000 + (map_entry * 16); }
-						else { map_entry = signed_tile(map_entry); tile_addr = 0x8800 + (map_entry * 16); }
+						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
+						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
 
-						//Generate tile for Tile Set #1
-						for(int x = 0; x < 8; x++)
-						{
-							//Grab High and Low Bytes for Background Tile
-							high_byte = mem_link->read_byte(tile_addr);
-							low_byte = mem_link->read_byte(tile_addr+1);
-
-							//Cycle through High and Low bytes
-							for(int y = 7; y >= 0; y--)
-							{
-								high_bit = (high_byte >> y) & 0x01;
-								low_bit = (low_byte >> y) & 0x01;
-								final_byte = high_bit + (low_bit * 2);
-
-								temp_bg_tile.raw_data[bg_counter] = final_byte;
-								bg_counter++;
-							}
-			
-							//Move on to next address for tile
-							tile_addr += 2;
-						}
-
-						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_bg_tile.raw_data); }
-						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_bg_tile.raw_data); }
-
-						scanline_pixel_data[current_pixel] = background_colors_final[temp_bg_tile.raw_data[y]][bg_palette];
+						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
 						mem_link->vram_bank = old_vram_bank;
 					}	
 				}
@@ -477,25 +517,57 @@ void GPU::generate_scanline()
 
 				else
 				{
-					//Output Scanline data to RGBA
-					switch(bgp[tile_pixel])
+					//Output Scanline data to RGBA - DMG Mode
+					if(config::gb_type != 2)
 					{
-						case 0: 
-							scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
-							break;
+						//Output Scanline data to RGBA
+						switch(bgp[tile_pixel])
+						{
+							case 0: 
+								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+								break;
 
-						case 1: 
-							scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
-							break;
+							case 1: 
+								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+								break;
 
-						case 2: 
-							scanline_pixel_data[current_pixel] = 0xFF606060;
-							break;
+							case 2: 
+								scanline_pixel_data[current_pixel] = 0xFF606060;
+								break;
 
-						case 3: 
-							scanline_pixel_data[current_pixel] = 0xFF000000;
-							break;
+							case 3: 
+								scanline_pixel_data[current_pixel] = 0xFF000000;
+								break;
+						}
 					}
+
+					//Output Scanline data to RGBA - GBC Mode
+					else
+					{
+						u8 old_vram_bank = mem_link->vram_bank;
+						u8 bg_tile_bank = 0;
+						u8 bg_palette = 0;
+						gbc_tile temp_tile;
+						
+						//Always read CHR data from Bank 0
+						mem_link->vram_bank = 0;
+						map_entry = mem_link->read_byte(map_addr + x);
+
+						//Read BG Map attributes from Bank 1
+						mem_link->vram_bank = 1;
+						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
+						bg_palette = bg_map_attribute & 0x7;
+						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+
+						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
+						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
+
+						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
+						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
+
+						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
+						mem_link->vram_bank = old_vram_bank;
+					}	
 				}
 
 				if((config::dump_sprites) && (map_entry == dump_tile_win)) { scanline_pixel_data[current_pixel] += 0x00700000; }
@@ -812,8 +884,9 @@ void GPU::step(int cpu_clock)
  
 	//Update background tile
 	if(mem_link->gpu_update_bg_tile)
-	{ 
-		update_bg_tile();
+	{
+		if(config::gb_type != 2) { update_bg_tile(); }
+		else { update_gbc_bg_tile(); }
 		mem_link->gpu_update_bg_tile = false;
 	}
 

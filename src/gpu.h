@@ -47,6 +47,11 @@ struct gb_tile
 	bool custom_data_loaded;
 };
 
+struct gbc_tile
+{
+	u32 raw_data[0x40];
+};
+
 class GPU
 {
 	public:
@@ -81,6 +86,9 @@ class GPU
 	gb_tile tile_set_1[0x100];
 	gb_tile tile_set_0[0x100];
 
+	gbc_tile gbc_tile_set_1[0x100][2];
+	gbc_tile gbc_tile_set_0[0x100][2];
+
 	//Pixel data
 	u32 scanline_pixel_data [0x100];
 	u32 final_pixel_data [0x10000];
@@ -110,6 +118,7 @@ class GPU
 	void render_screen();
 	void scanline_compare();
 	void update_bg_tile();
+	void update_gbc_bg_tile();
 
 	void generate_scanline();
 	void generate_sprites();

@@ -24,7 +24,6 @@ MMU::MMU()
 	gpu_update_bg_tile = false;
 	gpu_update_sprite = false;
 	gpu_reset_ticks = false;
-	gpu_update_addr = 0;
 	gpu_hdma_in_progress = false;
 	gpu_update_sprite_colors = false;
 	gpu_update_bg_colors = false;
@@ -211,7 +210,7 @@ void MMU::write_byte(u16 address, u8 value)
 		if((address >= 0x8000) && (address <= 0x97FF))
 		{
 			gpu_update_bg_tile = true;
-			gpu_update_addr = address;
+			gpu_update_addr.push_back(address);
 			if(address <= 0x8FFF) { gpu_update_sprite = true; }
 		}
 	}	
@@ -220,7 +219,7 @@ void MMU::write_byte(u16 address, u8 value)
 	else if(address == REG_BGP)
 	{
 		gpu_update_bg_tile = true;
-		gpu_update_addr = address;
+		gpu_update_addr.push_back(address);
 		memory_map[address] = value;
 	}
 

@@ -103,7 +103,7 @@ class MMU
 	bool gpu_hdma_in_progress;
 	bool gpu_update_sprite_colors;
 	bool gpu_update_bg_colors;
-	u16 gpu_update_addr;
+	std::vector<u16> gpu_update_addr;
 
 	//Variables read by the APU
 	//TODO: Extern these into a separate namespace
