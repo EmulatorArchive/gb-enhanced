@@ -101,6 +101,8 @@ class MMU
 	bool gpu_update_sprite;
 	bool gpu_reset_ticks;
 	bool gpu_hdma_in_progress;
+	u8 gpu_hdma_type;
+	u8 gpu_hdma_current_line;
 	bool gpu_update_sprite_colors;
 	bool gpu_update_bg_colors;
 	std::vector<u16> gpu_update_addr;

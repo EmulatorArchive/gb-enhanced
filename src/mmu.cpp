@@ -25,6 +25,8 @@ MMU::MMU()
 	gpu_update_sprite = false;
 	gpu_reset_ticks = false;
 	gpu_hdma_in_progress = false;
+	gpu_hdma_type = 2;
+	gpu_hdma_current_line = 0;
 	gpu_update_sprite_colors = false;
 	gpu_update_bg_colors = false;
 
@@ -307,8 +309,21 @@ void MMU::write_byte(u16 address, u8 value)
 	else if(address == REG_HDMA5)
 	{
 		//Halt Horizontal DMA transfer if one is already in progress and 0 is now written to Bit 7
-		if((memory_map[address] & 0x80) && ((value & 0x80) == 0)) { gpu_hdma_in_progress = false; }
-		else { gpu_hdma_in_progress = true; }
+		if(((value & 0x80) == 0) && (gpu_hdma_in_progress)) 
+		{ 
+			gpu_hdma_in_progress = false;
+			gpu_hdma_current_line = 0;
+			value = 0x80;
+		}
+
+		//If not halting a current HDMA transfer, start a new one, determine its type
+		else 
+		{
+			gpu_hdma_in_progress = true;
+			gpu_hdma_current_line = 0;
+			gpu_hdma_type = (value & 0x80) ? 1 : 0;
+			value &= ~0x80;
+		}
 
 		memory_map[address] = value;
 	}

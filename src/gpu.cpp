@@ -69,8 +69,6 @@ GPU::GPU()
 		glGenTextures(1, &gpu_texture);
 		glBindTexture(GL_TEXTURE_2D, gpu_texture);
 	}
-
-	current_hdma_line = 0;
 }
 
 /****** GPU Deconstructor ******/
@@ -991,11 +989,12 @@ void GPU::step(int cpu_clock)
 		mem_link->gpu_update_sprite_colors = false;
 	}
 
-	//Do General HDMA
-	if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && ((mem_link->memory_map[REG_HDMA5] & 0x80) == 0))
+	//General HDMA
+	if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && (mem_link->gpu_hdma_type == 0))
 	{
 		u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
 		u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
+		dest_addr |= 0x8000;
 		u8 transfer_byte_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
 
 		for(u16 x = 0; x < (transfer_byte_count * 16); x++)
@@ -1004,7 +1003,7 @@ void GPU::step(int cpu_clock)
 		}
 
 		mem_link->gpu_hdma_in_progress = false;
-		mem_link->memory_map[REG_HDMA5] = 0;
+		mem_link->memory_map[REG_HDMA5] = 0xFF;
 	}
 
 	//Perform LCD operations only when LCD is enabled
@@ -1020,35 +1019,33 @@ void GPU::step(int cpu_clock)
 				//Render scanline when 1st entering Mode 0
 				if(gpu_mode_change != 0)
 				{
-					//On the GBC, do HDMA now
-					if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && (mem_link->memory_map[REG_HDMA5] & 0x80))
+					//Horizontal blanking DMA
+					if((config::gb_type == 2) && (mem_link->gpu_hdma_in_progress) && (mem_link->gpu_hdma_type == 1))
 					{
 						u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
 						u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
 						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
 
-						//Horizontal Blanking DMA
-						if(mem_link->memory_map[REG_HDMA5] & 0x80)
+						start_addr += (mem_link->gpu_hdma_current_line * 16);
+						dest_addr += (mem_link->gpu_hdma_current_line * 16);
+						dest_addr |= 0x8000;
+
+						for(u16 x = 0; x < 16; x++)
 						{
-							start_addr += (current_hdma_line * 16);
-
-							for(u16 x = 0; x < 16; x++)
-							{
-								mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
-							}
-							
-							current_hdma_line++;
-
-							if(current_hdma_line == line_transfer_count) 
-							{ 
-								mem_link->gpu_hdma_in_progress = false;
-								mem_link->memory_map[REG_HDMA5] &= ~0x80;
-								current_hdma_line = 0;
-							}
+							mem_link->write_byte(dest_addr++, mem_link->read_byte(start_addr++));
 						}
-					}
+							
+						mem_link->gpu_hdma_current_line++;
 
-					if((config::gb_type == 2) && (!mem_link->gpu_hdma_in_progress)) { current_hdma_line = 0; }
+						if((line_transfer_count - 1) == 0) 
+						{ 
+							mem_link->gpu_hdma_in_progress = false;
+							mem_link->memory_map[REG_HDMA5] = 0xFF;
+							mem_link->gpu_hdma_current_line = 0;
+						}
+
+						else { line_transfer_count--; mem_link->memory_map[REG_HDMA5] |= line_transfer_count; }
+					}
 
 					generate_scanline();
 					gpu_mode_change = 0;
