@@ -494,7 +494,7 @@ bool MMU::read_file(std::string filename)
 	//Load Saved RAM if available
 	if(cart_battery)
 	{
-		save_ram_file = filename.substr(0, (filename.length() - 2)) + "sram";
+		save_ram_file = filename + ".sram";
 		std::ifstream sram(save_ram_file.c_str(), std::ios::binary);
 
 		if(!sram.is_open()) { std::cout<<"MMU : " << save_ram_file << " battery file could not be opened. Check file path or permission\n"; }
