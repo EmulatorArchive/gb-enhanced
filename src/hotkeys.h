@@ -18,6 +18,7 @@
 
 void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event);
 void take_screenshot(GPU& gb_gpu);
+void toggle_fullscreen(GPU& gb_gpu);
 
 #endif // GB_HOTKEYS
 

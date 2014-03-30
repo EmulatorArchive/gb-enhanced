@@ -14,7 +14,7 @@
 /****** Initialize OpenGL through SDL ******/
 void GPU::opengl_init()
 {
-	SDL_SetVideoMode((config::scaling_factor * 160), (config::scaling_factor * 144), 32, SDL_OPENGL);
+	SDL_SetVideoMode((config::scaling_factor * 160), (config::scaling_factor * 144), 32, SDL_OPENGL | config::flags);
 		
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);

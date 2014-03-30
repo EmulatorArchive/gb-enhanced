@@ -38,6 +38,9 @@ void process_keys(CPU& z80, GPU& gb_gpu, SDL_Event& event)
 	//Screenshot on F9
 	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F9)) { take_screenshot(gb_gpu); }
 
+	//Switch between fullscreen and windowed mode
+	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_F10)) { toggle_fullscreen(gb_gpu); }
+
 	//Temporarily disable disable framelimit on TAB
 	else if((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_TAB)) { config::turbo = true; }
 
@@ -64,7 +67,28 @@ void take_screenshot(GPU& gb_gpu)
 	//Append random number to screenshot name
 	srand(SDL_GetTicks());
 	save_stream << rand() % 1024 << rand() % 1024 << rand() % 1024;
-	save_name += save_stream.str();
+	save_name += save_stream.str() + ".bmp";
 	
 	SDL_SaveBMP(gb_gpu.gpu_screen, save_name.c_str());
+}
+
+/****** Toggles between fullscreen mode and windowed mode ******/
+void toggle_fullscreen(GPU& gb_gpu)
+{
+	//Switch flags
+	if(config::flags == 0x80000000) { config::flags = 0; }
+	else { config::flags = 0x80000000; }
+
+	//Initialize the screen - account for scaling, fullscreen
+	if((!config::use_scaling) && (!config::use_opengl)) 
+	{ 
+		gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE | config::flags); 
+	}
+	
+	else if((config::use_scaling) && (!config::use_opengl)) 
+	{ 
+		gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE | config::flags); 
+	}
+	
+	else if(config::use_opengl) { gb_gpu.opengl_init(); }
 }

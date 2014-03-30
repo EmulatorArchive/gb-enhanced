@@ -27,6 +27,7 @@ namespace config
 	int scaling_mode = 0;
 	int scaling_factor = 1;
 	std::vector <u32> ini_parameters;
+	u32 flags = 0;
 
 	//Default keyboard bindings
 	//Arrow Z = A button, X = B button, START = Return, Select = Space
@@ -83,6 +84,9 @@ bool parse_cli_args()
 
 			//Load sprites
 			else if(config::cli_args[x] == "--load_sprites") { config::load_sprites = true; config::dump_sprites = false; }
+
+			//Use fullscreen mode
+			else if(config::cli_args[x] == "--fullscreen") { config::flags |= 0x80000000; } 
 			
 			//Set scaling filter #1 - Nearest Neighbor 2x
 			else if((config::cli_args[x] == "--f1") && (scaling_parsed == false))
@@ -282,6 +286,12 @@ bool parse_config_file()
 	if(config::ini_parameters.size() >= 23)
 	{
 		config::custom_sprite_transparency = config::ini_parameters[22];
+	}
+
+	//Check for fullscreen
+	if(config::ini_parameters.size() >= 24)
+	{
+		if(config::ini_parameters[23] == 1) { config::flags = 0x80000000; }
 	}
 
 	return true;

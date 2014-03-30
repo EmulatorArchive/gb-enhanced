@@ -35,6 +35,7 @@ namespace config
 	extern int joy_a, joy_b, joy_start, joy_select, joy_up, joy_down, joy_left, joy_right;
 	extern int dead_zone;
 	extern std::vector <u32> ini_parameters;
+	extern u32 flags;
 	extern bool turbo;
 	extern bool mouse_click;
 	extern u32 mouse_x;
