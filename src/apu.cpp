@@ -131,7 +131,7 @@ void APU::update_channel_1(u16 update_addr)
 				}
 
 				//Turn off Sound Channel 1 if envelope volume is 0 and mode is subtraction
-				if((next_direction == 0) && (next_volume == 0)) { channel[0].playing = false; }
+				if((next_direction == 0) && (next_volume == 0)) { channel[0].playing = false; mem_link->memory_map[0xFF26] &= ~0x1; }
 			}
 			break;
 
@@ -221,7 +221,7 @@ void APU::update_channel_2(u16 update_addr)
 				}
 
 				//Turn off Sound Channel 2 if envelope volume is 0 and mode is subtraction
-				if((next_direction == 0) && (next_volume == 0)) { channel[1].playing = false; }
+				if((next_direction == 0) && (next_volume == 0)) { channel[1].playing = false; mem_link->memory_map[0xFF26] &= ~0x2; }
 			}
 			break;
 
@@ -269,7 +269,7 @@ void APU::update_channel_4(u16 update_addr)
 				}
 
 				//Turn off Sound Channel 4 if envelope volume is 0 and mode is subtraction
-				if((next_direction == 0) && (next_volume == 0)) { channel[3].playing = false; }
+				if((next_direction == 0) && (next_volume == 0)) { channel[3].playing = false; mem_link->memory_map[0xFF26] &= ~0x8; }
 			}
 			break;
 
@@ -488,6 +488,9 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 	//Process samples if playing
 	if((channel[0].playing) && (output_status))
 	{
+		//Set Sound 1 On Flag
+		mem_link->memory_map[0xFF26] |= 0x1;
+
 		int freq_samples = 44100/channel[0].frequency;
 
 		for(int x = 0; x < length; x++, channel[0].sample_length--)
@@ -510,11 +513,12 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 						{
 							if(channel[0].sweep_step >= 1) { pre_calc = (channel[0].raw_frequency >> channel[0].sweep_step); }
 
-							//When frequency is greater than 131KHz, stop sound - reset NR52 in future
+							//When frequency is greater than 131KHz, stop sound
 							if((channel[0].raw_frequency + pre_calc) >= 0x800) 
 							{ 
 								channel[0].volume = channel[0].sweep_step = channel[0].envelope_step = channel[0].sweep_time = 0; 
 								channel[0].playing = false; 
+								mem_link->memory_map[0xFF26] &= ~0x1;
 							}
 	
 							else 
@@ -581,8 +585,8 @@ void APU::generate_channel_1_samples(s16* stream, int length)
 			//Continuously generate sound if necessary
 			else if((channel[0].sample_length == 0) && (channel[0].duration == 5000)) { channel[0].sample_length = (channel[0].duration * 44100)/1000; }
 
-			//Or stop sound after duration has been met
-			else { channel[0].sample_length = 0; stream[x] = -32768; channel[0].playing = false; }
+			//Or stop sound after duration has been met, reset Sound 1 On Flag
+			else { channel[0].sample_length = 0; stream[x] = -32768; channel[0].playing = false; mem_link->memory_map[0xFF26] &= ~0x1; }
 		}
 	}
 
@@ -604,6 +608,9 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 	//Process samples if playing
 	if((channel[1].playing) && (output_status))
 	{
+		//Set Sound 2 On Flag
+		mem_link->memory_map[0xFF26] |= 0x2;
+
 		int freq_samples = 44100/channel[1].frequency;
 
 		for(int x = 0; x < length; x++, channel[1].sample_length--)
@@ -646,8 +653,8 @@ void APU::generate_channel_2_samples(s16* stream, int length)
 			//Continuously generate sound if necessary
 			else if((channel[1].sample_length == 0) && (channel[1].duration == 5000)) { channel[1].sample_length = (channel[1].duration * 44100)/1000; }
 
-			//Or stop sound after duration has been met
-			else { channel[1].sample_length = 0; stream[x] = -32768; channel[1].playing = false; }
+			//Or stop sound after duration has been met, reset Sound 2 On Flag
+			else { channel[1].sample_length = 0; stream[x] = -32768; channel[1].playing = false; mem_link->memory_map[0xFF26] &= ~0x2; }
 		}
 	}
 
@@ -664,12 +671,15 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 	bool output_status = false;
 
 	if((mem_link->memory_map[0xFF25] & 0x4) || (mem_link->memory_map[0xFF25] & 0x40)) { output_status = true; }
-	if(!(mem_link->memory_map[0xFF1A] & 0x80)) { output_status = false; }
+	if(!(mem_link->memory_map[0xFF1A] & 0x80)) { output_status = false; mem_link->memory_map[0xFF26] &= ~0x4; }
 	if(!(mem_link->memory_map[0xFF26] & 0x80)) { output_status = false; }	
 
 	//Process samples if playing
 	if((channel[2].playing) && (output_status))
 	{
+		//Set Sound 3 On Flag
+		mem_link->memory_map[0xFF26] |= 0x4;
+
 		//Duration
 		if((mem_link->memory_map[0xFF1E] & 0x40) == 0) 
 		{
@@ -766,8 +776,8 @@ void APU::generate_channel_3_samples(s16* stream, int length)
 			//Continuously generate sound if necessary
 			else if((channel[2].sample_length == 0) && (channel[2].duration == 5000)) { channel[2].sample_length = (channel[2].duration * 44100)/1000; }
 
-			//Or stop sound after duration has been met
-			else { channel[2].sample_length = 0; stream[x] = -32768; channel[2].playing = false; }
+			//Or stop sound after duration has been met, reset Sound 3 On Flag
+			else { channel[2].sample_length = 0; stream[x] = -32768; channel[2].playing = false; mem_link->memory_map[0xFF26] &= ~0x4; }
 		}
 	}
 
@@ -789,6 +799,9 @@ void APU::generate_channel_4_samples(s16* stream, int length)
 	//Process samples if playing
 	if((channel[3].playing) && (output_status))
 	{
+		//Set Sound 4 On Flag
+		mem_link->memory_map[0xFF26] |= 0x8;
+
 		double samples_per_freq = channel[3].frequency/44100;
 		double samples_per_freq_counter = 0;
 		u32 lsfr_runs = 0;
@@ -865,8 +878,8 @@ void APU::generate_channel_4_samples(s16* stream, int length)
 			//Continuously generate sound if necessary
 			else if((channel[3].sample_length == 0) && (channel[3].duration == 5000)) { channel[3].sample_length = (channel[3].duration * 44100)/1000; }
 
-			//Or stop sound after duration has been met
-			else { channel[3].sample_length = 0; stream[x] = -32768; channel[3].playing = false; }
+			//Or stop sound after duration has been met, reset Sound 4 On Flag
+			else { channel[3].sample_length = 0; stream[x] = -32768; channel[3].playing = false; mem_link->memory_map[0xFF26] &= ~0x8; }
 		}
 	}
 

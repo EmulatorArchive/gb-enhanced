@@ -328,6 +328,16 @@ void MMU::write_byte(u16 address, u8 value)
 		memory_map[address] = value;
 	}
 
+	//NR52
+	else if(address == REG_NR52)
+	{
+		//Only bit 7 is writable
+		if(value & 0x80) { memory_map[address] |= 0x80; }
+		
+		//When Bit 7 is cleared, so are Bits 0-3, Bits 6-4 are ALWAYS set to 1
+		else { memory_map[address] = 0x70; }
+	}
+
 	//VBK - Update VRAM bank
 	else if(address == REG_VBK) 
 	{ 
@@ -456,7 +466,8 @@ bool MMU::read_file(std::string filename)
    		memory_map[0xFF22] = 0x00; 
    		memory_map[0xFF23] = 0xBF; 
    		memory_map[0xFF24] = 0x77; 
-   		memory_map[0xFF25] = 0xF3; 
+   		memory_map[0xFF25] = 0xF3;
+		memory_map[0xFF26] = 0xF1; 
 	}
 
 	//Determine MBC type

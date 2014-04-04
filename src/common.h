@@ -66,6 +66,9 @@ const u16 REG_IF = 0xFF0F;
 //Enabled Interrupts
 const u16 REG_IE = 0xFFFF;
 
+//NR52
+const u16 REG_NR52 = 0xFF26;
+
 //LCD Control
 const u16 REG_LCDC = 0xFF40;
 
