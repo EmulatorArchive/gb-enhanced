@@ -67,6 +67,7 @@ int main(int argc, char* args[])
 	else { z80.reset(); }
 
 	u8 op = 0;
+	u8 double_div = 1;
 
 	//Initialize the screen - account for scaling
 	if((!config::use_scaling) && (!config::use_opengl)) { gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE); std::cout<<"Using SDL renderer... \n"; }
@@ -110,20 +111,18 @@ int main(int argc, char* args[])
 			z80.exec_op(op);
 		}
 
-		if(z80.double_speed) { z80.cycles /= 2; }
-
-		//Update Z80 clock
-		z80.cpu_clock_t = z80.cycles;
-		z80.cpu_clock_m = z80.cycles/4;
+		//Divide clock cycles to emulate double speed mode
+		if(z80.double_speed) { double_div = 2; }
+		else { double_div = 1; }
 
 		//Update GPU
-		gb_gpu.step(z80.cpu_clock_t);
+		gb_gpu.step(z80.cycles/double_div);
 
 		//Update APU
 		gb_apu.step();
 
 		//Update DIV timer - Every 4 M clocks
-		z80.div_counter += z80.cpu_clock_t;
+		z80.div_counter += z80.cycles;
 		
 		if(z80.div_counter >= 256) 
 		{
@@ -134,7 +133,7 @@ int main(int argc, char* args[])
 		//Update TIMA timer
 		if(z80.mem.memory_map[REG_TAC] & 0x4) 
 		{	
-			z80.tima_counter += z80.cpu_clock_t;
+			z80.tima_counter += z80.cycles;
 
 			switch(z80.mem.memory_map[REG_TAC] & 0x3)
 			{

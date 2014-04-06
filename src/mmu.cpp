@@ -344,7 +344,14 @@ void MMU::write_byte(u16 address, u8 value)
 		vram_bank = value & 0x1; 
 		memory_map[address] = value; 
 	}
-		
+
+	//KEY1 - Double-Normal speed switch
+	else if(address == REG_KEY1)
+	{
+		value &= 0x1;
+		if(value == 1) { memory_map[address] |= 0x1; }
+		else { memory_map[address] &= ~0x1; }
+	}
 
 	//BCPD - Update background color palettes
 	else if(address == REG_BCPD)
