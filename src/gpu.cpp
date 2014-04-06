@@ -994,7 +994,16 @@ void GPU::step(int cpu_clock)
 	{
 		u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
 		u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
+
+		//Ignore bottom 4 bits of start address
+		start_addr &= 0xFFF0;
+
+		//Ignore top 3 bits and bottom 4 bits of destination address
+		dest_addr &= 0x1FF0;
+
+		//Destination is ALWAYS in VRAM
 		dest_addr |= 0x8000;
+
 		u8 transfer_byte_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
 
 		for(u16 x = 0; x < (transfer_byte_count * 16); x++)
@@ -1028,6 +1037,14 @@ void GPU::step(int cpu_clock)
 
 						start_addr += (mem_link->gpu_hdma_current_line * 16);
 						dest_addr += (mem_link->gpu_hdma_current_line * 16);
+
+						//Ignore bottom 4 bits of start address
+						start_addr &= 0xFFF0;
+
+						//Ignore top 3 bits and bottom 4 bits of destination address
+						dest_addr &= 0x1FF0;
+
+						//Destination is ALWAYS in VRAM
 						dest_addr |= 0x8000;
 
 						for(u16 x = 0; x < 16; x++)
