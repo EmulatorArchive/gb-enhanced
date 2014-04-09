@@ -316,6 +316,7 @@ void GPU::generate_scanline()
 	u8 current_pixel = 0x100 - mem_link->memory_map[REG_SX];
 
 	u32 bg_win_raw_data[0x100];
+	u32 bg_priority[0x100];
 
 	u16 map_addr = 0;
 	u16 tile_set_addr = 0;
@@ -430,6 +431,7 @@ void GPU::generate_scanline()
 						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
 						bg_palette = bg_map_attribute & 0x7;
 						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+						bg_priority[current_pixel] = (bg_map_attribute & 0x80) ? 1 : 0;
 
 						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
 						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
@@ -437,6 +439,7 @@ void GPU::generate_scanline()
 						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
 						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
 
+						bg_win_raw_data[current_pixel] = temp_tile.raw_data[y];
 						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
 						mem_link->vram_bank = old_vram_bank;
 					}	
@@ -556,6 +559,7 @@ void GPU::generate_scanline()
 						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
 						bg_palette = bg_map_attribute & 0x7;
 						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+						bg_priority[current_pixel] = (bg_map_attribute & 0x80) ? 1 : 0;
 
 						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
 						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
@@ -563,6 +567,7 @@ void GPU::generate_scanline()
 						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
 						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
 
+						bg_win_raw_data[current_pixel] = temp_tile.raw_data[y];
 						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
 						mem_link->vram_bank = old_vram_bank;
 					}	
@@ -641,15 +646,15 @@ void GPU::generate_scanline()
 					//Draw original sprite data
 					else 
 					{
-						//If raw data is 0, that's the sprites transparency
-						//In this case, we leave scanline data untouched
-						if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
-						else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
-
-						if(draw_sprite_pixel) 
+						//Output Scanline data to RGBA - DMG Mode
+						if(config::gb_type != 2)
 						{
-							//Output Scanline data to RGBA - DMG Mode
-							if(config::gb_type != 2)
+							//If raw data is 0, that's the sprites transparency
+							//In this case, we leave scanline data untouched
+							if((sprites[current_sprite].raw_data[y] != 0) && (priority == 0)) { draw_sprite_pixel = true; }
+							else if((sprites[current_sprite].raw_data[y] != 0) && (priority == 1) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+
+							if(draw_sprite_pixel) 
 							{
 								switch(obp[sprites[current_sprite].raw_data[y]][pal])
 								{
@@ -674,10 +679,16 @@ void GPU::generate_scanline()
 						} 
 
 						//Output Scanline data to RGBA - DMG Mode
-						if((config::gb_type == 2) && (sprites[current_sprite].raw_data[y] != 0))
+						if(config::gb_type == 2)
 						{
-							scanline_pixel_data[current_pixel] = sprite_colors_final[sprites[current_sprite].raw_data[y]][gbc_pal];
-							//std::cout<<"Using Palette : " << std::dec << (int)gbc_pal << "\n";
+							if((bg_priority[current_pixel] == 0) && (priority == 0) && (sprites[current_sprite].raw_data[y] != 0)) { draw_sprite_pixel = true; }
+							if((bg_priority[current_pixel] == 0) && (priority == 1) && (sprites[current_sprite].raw_data[y] != 0) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+							if((bg_priority[current_pixel] == 1) && (sprites[current_sprite].raw_data[y] != 0) && (bg_win_raw_data[current_pixel] == 0)) { draw_sprite_pixel = true; }
+						
+							if(draw_sprite_pixel)
+							{
+								scanline_pixel_data[current_pixel] = sprite_colors_final[sprites[current_sprite].raw_data[y]][gbc_pal];
+							}
 						}
 					}
 
