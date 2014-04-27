@@ -83,6 +83,9 @@ int main(int argc, char* args[])
 	if(!z80.mem.read_file(config::rom_file)) { return 1; }
 	else { z80.running = true; }
 
+	//Alter register values to reflect DMG or GBC support
+	if(config::gb_type == 2) { z80.reg.a = 0x11; }
+
 	//Main loop
 	while(z80.running)
 	{

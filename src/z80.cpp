@@ -23,7 +23,7 @@ CPU::~CPU() { }
 void CPU::reset() 
 {
 	//Values represent HLE BIOS
-	reg.a = 0x11;
+	reg.a = 0x01;
 	reg.b = 0x00;
 	reg.c = 0x13;
 	reg.d = 0x00;
