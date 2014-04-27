@@ -40,6 +40,7 @@ namespace config
 	extern bool mouse_click;
 	extern u32 mouse_x;
 	extern u32 mouse_y;
+	extern u8 gb_type;
 }
 
 #endif // GB_CONFIG

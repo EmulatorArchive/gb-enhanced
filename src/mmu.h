@@ -33,11 +33,21 @@ class MMU
 	std::vector< std::vector<u8> > read_only_bank;
 	std::vector< std::vector<u8> > random_access_bank;
 
+	//Working RAM Banks - GBC only
+	std::vector< std::vector<u8> > working_ram_bank;
+
+	std::vector< std::vector<u8> > video_ram;
+
 	u16 rom_bank;
 	u8 ram_bank;
+	u8 wram_bank;
+	u8 vram_bank;
 	u8 bank_bits;
 	u8 bank_mode;
 	bool ram_banking_enabled;
+
+	u16 sprite_colors_raw[4][8];
+	u16 background_colors_raw[4][8];
 
 	GamePad pad;
 
@@ -90,7 +100,12 @@ class MMU
 	bool gpu_update_bg_tile;
 	bool gpu_update_sprite;
 	bool gpu_reset_ticks;
-	u16 gpu_update_addr;
+	bool gpu_hdma_in_progress;
+	u8 gpu_hdma_type;
+	u8 gpu_hdma_current_line;
+	bool gpu_update_sprite_colors;
+	bool gpu_update_bg_colors;
+	std::vector<u16> gpu_update_addr;
 
 	//Variables read by the APU
 	//TODO: Extern these into a separate namespace

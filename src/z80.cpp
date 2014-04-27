@@ -45,6 +45,7 @@ void CPU::reset()
 	halt = false;
 	pause = false;
 	interrupt = false;
+	double_speed = false;
 }
 
 /****** CPU Reset - For BIOS ******/
@@ -72,6 +73,7 @@ void CPU::reset_bios()
 	halt = false;
 	pause = false;
 	interrupt = false;
+	double_speed = false;
 }
 
 /****** Handle Interrupts to CPU ******/
@@ -662,6 +664,19 @@ void CPU::exec_op(u8 opcode)
 
 		//STOP
 		case 0x10 :
+			//GBC - Normal to double speed mode
+			if((config::gb_type == 2) && (mem.memory_map[REG_KEY1] & 0x1) && ((mem.memory_map[REG_KEY1] & 0x80) == 0))
+			{
+				double_speed = true;
+				mem.memory_map[REG_KEY1] = 0x80;
+			}
+
+			//GBC - Double to normal speed mode
+			if((config::gb_type == 2) && (mem.memory_map[REG_KEY1] & 0x1) && (mem.memory_map[REG_KEY1] & 0x80))
+			{
+				double_speed = false;
+				mem.memory_map[REG_KEY1] = 0;
+			}
 			break;	
 
 		//LD DE, nn

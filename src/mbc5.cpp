@@ -41,8 +41,13 @@ void MMU::mbc5_write(u16 address, u8 value)
 	//MBC register - Select ROM Bank - High 9th bit
 	if((address >= 0x3000) && (address <= 0x3FFF))
 	{
-		if((value & 0x1) == 1) { rom_bank |= 0x100; }
-		else { rom_bank &= ~0x100; }
+		//If the game does not use all 512 available banks, ignore high 9th bit (treat as 0)
+		//Lets games like Lufia: The Legend Returns boot properly
+		if(memory_map[ROM_ROMSIZE] > 0x7)
+		{
+			if((value & 0x1) == 1) { rom_bank |= 0x100; }
+			else { rom_bank &= ~0x100; }
+		}
 	}
 
 	//MBC register - Select RAM bank

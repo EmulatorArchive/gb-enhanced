@@ -26,6 +26,9 @@ typedef signed int s32;
 
 /* ROM Header */
 
+//DMG or GBC Support
+const u16 ROM_COLOR = 0x143;
+
 //Memory Bank Controller Type
 const u16 ROM_MBC = 0x147;
 
@@ -63,6 +66,9 @@ const u16 REG_IF = 0xFF0F;
 //Enabled Interrupts
 const u16 REG_IE = 0xFFFF;
 
+//NR52
+const u16 REG_NR52 = 0xFF26;
+
 //LCD Control
 const u16 REG_LCDC = 0xFF40;
 
@@ -98,5 +104,41 @@ const u16 REG_WY = 0xFF4A;
 
 //Window-X
 const u16 REG_WX = 0xFF4B;
+
+//Double Speed Control
+const u16 REG_KEY1 = 0xFF4D;
+
+//HDMA Source High
+const u16 REG_HDMA1 = 0xFF51;
+
+//HDMA Source Low
+const u16 REG_HDMA2 = 0xFF52;
+
+//HDMA Destination High
+const u16 REG_HDMA3 = 0xFF53;
+
+//HDMA Destination Low
+const u16 REG_HDMA4 = 0xFF54;
+
+//HDMA Control
+const u16 REG_HDMA5 = 0xFF55;
+
+//Video RAM Bank
+const u16 REG_VBK = 0xFF4F;
+
+//Background Color Palette Select
+const u16 REG_BCPS = 0xFF68;
+
+//Background Color Palette Data
+const u16 REG_BCPD = 0xFF69;
+
+//Object Color Palette Select
+const u16 REG_OCPS = 0xFF6A;
+
+//Object Color Palette Data
+const u16 REG_OCPD = 0xFF6B;
+
+//Working RAM Bank
+const u16 REG_SVBK = 0xFF70;
 
 #endif // GB_COMMON

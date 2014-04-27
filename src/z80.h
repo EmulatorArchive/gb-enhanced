@@ -93,6 +93,7 @@ class CPU
 
 	bool halt;
 	bool pause;
+	bool double_speed;
 
 	//Core Functions
 	CPU();

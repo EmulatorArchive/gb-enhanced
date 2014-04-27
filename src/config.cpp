@@ -51,6 +51,9 @@ namespace config
 	//Mouse screen coordinates
 	u32 mouse_x = 0;
 	u32 mouse_y = 0;
+
+	//Emulated GB system
+	u8 gb_type = 0;
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -127,6 +130,12 @@ bool parse_cli_args()
 			{
 				std::cout<<"Warning : Multiple scaling filters selected. Only the first will be applied\n";
 			} 
+
+			//Force DMG emulation
+			else if(config::cli_args[x] == "--force-dmg") { config::gb_type = 1; }
+
+			//Force GBC emulation
+			else if(config::cli_args[x] == "--force-gbc") { config::gb_type = 2; }
 			
 			else 
 			{
@@ -292,6 +301,15 @@ bool parse_config_file()
 	if(config::ini_parameters.size() >= 24)
 	{
 		if(config::ini_parameters[23] == 1) { config::flags = 0x80000000; }
+	}
+
+	//Check for emulated system type
+	if(config::ini_parameters.size() >= 25)
+	{
+		if((config::ini_parameters[24] >= 0) && (config::ini_parameters[24] <= 2))
+		{
+			config::gb_type = config::ini_parameters[24];
+		}
 	}
 
 	return true;
