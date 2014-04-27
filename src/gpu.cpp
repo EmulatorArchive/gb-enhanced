@@ -27,10 +27,10 @@ GPU::GPU()
 
 	if(config::use_scaling)
 	{	
-		temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (256 * config::scaling_factor), 32, 0, 0, 0, 0);
+		temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
 	}
 
-	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
+	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 144, 32, 0, 0, 0, 0);
 
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
 	memset(scanline_pixel_data, 0xFFFFFFFF, sizeof(scanline_pixel_data));
@@ -347,6 +347,9 @@ void GPU::generate_scanline()
 		for(int x = tile_lower_range; x < tile_upper_range; x++)
 		{
 			bool highlight_tile = false;
+			u8 bg_palette = 0;
+			u8 bg_tile_bank = 0;
+			u8 bg_map_attribute = 0;
 
 			//Check if tile can be highlighted - For BG tile dumping
 			if(config::dump_sprites)
@@ -416,32 +419,33 @@ void GPU::generate_scanline()
 
 					//Output Scanline data to RGBA - GBC Mode
 					else
-					{
-						u8 old_vram_bank = mem_link->vram_bank;
-						u8 bg_tile_bank = 0;
-						u8 bg_palette = 0;
-						gbc_tile temp_tile;
+					{	
+						if((y % 8) == 0)
+						{
+							u8 old_vram_bank = mem_link->vram_bank;
+
+							//Always read CHR data from Bank 0
+							mem_link->vram_bank = 0;
+							map_entry = mem_link->read_byte(map_addr + x);
+
+							//Read BG Map attributes from Bank 1
+							mem_link->vram_bank = 1;
+							bg_map_attribute = mem_link->read_byte(map_addr + x);
+							bg_palette = bg_map_attribute & 0x7;
+							bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+
+							if(mem_link->memory_map[REG_LCDC] & 0x10) { bg_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
+							else { map_entry = signed_tile(map_entry); bg_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
+
+							if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, bg_tile.raw_data); }
+							if(bg_map_attribute & 0x40) { vertical_flip(8, 8, bg_tile.raw_data); }
 						
-						//Always read CHR data from Bank 0
-						mem_link->vram_bank = 0;
-						map_entry = mem_link->read_byte(map_addr + x);
+							mem_link->vram_bank = old_vram_bank;
+						}
 
-						//Read BG Map attributes from Bank 1
-						mem_link->vram_bank = 1;
-						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
-						bg_palette = bg_map_attribute & 0x7;
-						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
 						bg_priority[current_pixel] = (bg_map_attribute & 0x80) ? 1 : 0;
-
-						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
-						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
-
-						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
-						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
-
-						bg_win_raw_data[current_pixel] = temp_tile.raw_data[y];
-						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
-						mem_link->vram_bank = old_vram_bank;
+						bg_win_raw_data[current_pixel] = bg_tile.raw_data[y];
+						scanline_pixel_data[current_pixel] = background_colors_final[bg_tile.raw_data[y]][bg_palette];
 					}	
 				}
 				
@@ -475,6 +479,9 @@ void GPU::generate_scanline()
 		for(int x = tile_lower_range; x < tile_upper_range; x++)
 		{
 			bool highlight_tile = false;
+			u8 bg_tile_bank = 0;
+			u8 bg_palette = 0;
+			u8 bg_map_attribute = 0;
 
 			//Check if tile can be highlighted - For BG tile dumping
 			if(config::dump_sprites)
@@ -545,31 +552,32 @@ void GPU::generate_scanline()
 					//Output Scanline data to RGBA - GBC Mode
 					else
 					{
-						u8 old_vram_bank = mem_link->vram_bank;
-						u8 bg_tile_bank = 0;
-						u8 bg_palette = 0;
-						gbc_tile temp_tile;
+						if((y % 8) == 0)
+						{
+							u8 old_vram_bank = mem_link->vram_bank;
 						
-						//Always read CHR data from Bank 0
-						mem_link->vram_bank = 0;
-						map_entry = mem_link->read_byte(map_addr + x);
+							//Always read CHR data from Bank 0
+							mem_link->vram_bank = 0;
+							map_entry = mem_link->read_byte(map_addr + x);
 
-						//Read BG Map attributes from Bank 1
-						mem_link->vram_bank = 1;
-						u8 bg_map_attribute = mem_link->read_byte(map_addr + x);
-						bg_palette = bg_map_attribute & 0x7;
-						bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+							//Read BG Map attributes from Bank 1
+							mem_link->vram_bank = 1;
+							bg_map_attribute = mem_link->read_byte(map_addr + x);
+							bg_palette = bg_map_attribute & 0x7;
+							bg_tile_bank = (bg_map_attribute & 0x8) ? 1 : 0;
+
+							if(mem_link->memory_map[REG_LCDC] & 0x10) { win_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
+							else { map_entry = signed_tile(map_entry); win_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
+
+							if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, win_tile.raw_data); }
+							if(bg_map_attribute & 0x40) { vertical_flip(8, 8, win_tile.raw_data); }
+
+							mem_link->vram_bank = old_vram_bank;
+						}
+
 						bg_priority[current_pixel] = (bg_map_attribute & 0x80) ? 1 : 0;
-
-						if(mem_link->memory_map[REG_LCDC] & 0x10) { temp_tile = gbc_tile_set_1[map_entry][bg_tile_bank]; }
-						else { map_entry = signed_tile(map_entry); temp_tile = gbc_tile_set_0[map_entry][bg_tile_bank]; }
-
-						if(bg_map_attribute & 0x20) { horizontal_flip(8, 8, temp_tile.raw_data); }
-						if(bg_map_attribute & 0x40) { vertical_flip(8, 8, temp_tile.raw_data); }
-
-						bg_win_raw_data[current_pixel] = temp_tile.raw_data[y];
-						scanline_pixel_data[current_pixel] = background_colors_final[temp_tile.raw_data[y]][bg_palette];
-						mem_link->vram_bank = old_vram_bank;
+						bg_win_raw_data[current_pixel] = win_tile.raw_data[y];
+						scanline_pixel_data[current_pixel] = background_colors_final[win_tile.raw_data[y]][bg_palette];
 					}	
 				}
 

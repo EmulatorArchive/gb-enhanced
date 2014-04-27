@@ -89,6 +89,9 @@ class GPU
 	gbc_tile gbc_tile_set_1[0x100][2];
 	gbc_tile gbc_tile_set_0[0x100][2];
 
+	gbc_tile win_tile;
+	gbc_tile bg_tile;
+
 	//Pixel data
 	u32 scanline_pixel_data [0x100];
 	u32 final_pixel_data [0x10000];
