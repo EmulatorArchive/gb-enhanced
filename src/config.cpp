@@ -293,5 +293,14 @@ bool parse_config_file()
 		config::custom_sprite_transparency = config::ini_parameters[22];
 	}
 
+	//Check for emulated system type
+	if(config::ini_parameters.size() >= 24)
+	{
+		if((config::ini_parameters[23] >= 0) && (config::ini_parameters[23] <= 2))
+		{
+			config::gb_type = config::ini_parameters[23];
+		}
+	}
+
 	return true;
 }
