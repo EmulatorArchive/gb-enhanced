@@ -400,11 +400,18 @@ void GPU::generate_scanline()
 					else
 					{
 						u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
-						u32 hd_index = ((y/8) * 32) + ((y%8) * 2);
-						custom_scaled_pixel_data[hd_pixel_plotter] = tile_set_1[map_entry].custom_data[hd_index];
-						custom_scaled_pixel_data[hd_pixel_plotter+1] = tile_set_1[map_entry].custom_data[hd_index + 1];
-						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = tile_set_1[map_entry].custom_data[hd_index + 16];
-						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = tile_set_1[map_entry].custom_data[hd_index + 16 + 1];	
+						u32 hd_index = ((y/8) * (8*config::custom_sprite_scale*config::custom_sprite_scale)) + ((y%8) * config::custom_sprite_scale);
+						
+						for(int a = 0; a < config::custom_sprite_scale; a++)
+						{
+							for(int b = 0; b < config::custom_sprite_scale; b++)
+							{
+								custom_scaled_pixel_data[hd_pixel_plotter + b] = tile_set_1[map_entry].custom_data[hd_index + b];
+							}
+							
+							hd_pixel_plotter += temp_screen->w;
+							hd_index += (8 * config::custom_sprite_scale);
+						}	
 					}
 				}
 
@@ -421,11 +428,18 @@ void GPU::generate_scanline()
 					else
 					{
 						u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
-						u32 hd_index = ((y/8) * 32) + ((y%8) * 2);
-						custom_scaled_pixel_data[hd_pixel_plotter] = tile_set_0[map_entry].custom_data[hd_index];
-						custom_scaled_pixel_data[hd_pixel_plotter+1] = tile_set_0[map_entry].custom_data[hd_index + 1];
-						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = tile_set_0[map_entry].custom_data[hd_index + 16];
-						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = tile_set_0[map_entry].custom_data[hd_index + 16 + 1];
+						u32 hd_index = ((y/8) * (8*config::custom_sprite_scale*config::custom_sprite_scale)) + ((y%8) * config::custom_sprite_scale);
+						
+						for(int a = 0; a < config::custom_sprite_scale; a++)
+						{
+							for(int b = 0; b < config::custom_sprite_scale; b++)
+							{
+								custom_scaled_pixel_data[hd_pixel_plotter + b] = tile_set_0[map_entry].custom_data[hd_index + b];
+							}
+							
+							hd_pixel_plotter += temp_screen->w;
+							hd_index += (8 * config::custom_sprite_scale);
+						}	
 					}
 				}
 
@@ -460,10 +474,16 @@ void GPU::generate_scanline()
 						if((config::load_sprites) && (config::custom_sprite_scale > 1))
 						{
 							u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
-							custom_scaled_pixel_data[hd_pixel_plotter] = scanline_pixel_data[current_pixel];
-							custom_scaled_pixel_data[hd_pixel_plotter+1] = scanline_pixel_data[current_pixel];
-							custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = scanline_pixel_data[current_pixel];
-							custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = scanline_pixel_data[current_pixel];
+						
+							for(int a = 0; a < config::custom_sprite_scale; a++)
+							{
+								for(int b = 0; b < config::custom_sprite_scale; b++)
+								{
+									custom_scaled_pixel_data[hd_pixel_plotter + b] = scanline_pixel_data[current_pixel];
+								}
+							
+								hd_pixel_plotter += temp_screen->w;
+							}	
 						}
 					}
 
