@@ -54,6 +54,9 @@ namespace config
 
 	//Emulated GB system
 	u8 gb_type = 0;
+
+	//Custom sprite scaling factor
+	u8 custom_sprite_scale = 1;
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -86,7 +89,16 @@ bool parse_cli_args()
 			else if(config::cli_args[x] == "--dump_sprites") { config::dump_sprites = true; config::load_sprites = false; config::use_opengl = false; }
 
 			//Load sprites
-			else if(config::cli_args[x] == "--load_sprites") { config::load_sprites = true; config::dump_sprites = false; }
+			else if(config::cli_args[x] == "--load_sprites") 
+			{ 
+				config::load_sprites = true; 
+				config::dump_sprites = false; 
+				if(config::custom_sprite_scale > 1) 
+				{ 
+					config::use_scaling = false;
+					config::scaling_factor = config::custom_sprite_scale;
+				}
+			}
 
 			//Use fullscreen mode
 			else if(config::cli_args[x] == "--fullscreen") { config::flags |= 0x80000000; } 
@@ -297,18 +309,33 @@ bool parse_config_file()
 		config::custom_sprite_transparency = config::ini_parameters[22];
 	}
 
-	//Check for fullscreen
+	//Check for custom sprite scaling factor
 	if(config::ini_parameters.size() >= 24)
 	{
-		if(config::ini_parameters[23] == 1) { config::flags = 0x80000000; }
+		if((config::ini_parameters[23] >= 1) && (config::ini_parameters[23] <= 4))
+		{
+			config::custom_sprite_scale = config::ini_parameters[23];
+		}
+
+		if((config::custom_sprite_scale > 1) && (config::load_sprites)) 
+		{ 
+			config::scaling_factor = config::custom_sprite_scale;
+			config::use_scaling = false; 
+		}
+	}
+
+	//Check for fullscreen
+	if(config::ini_parameters.size() >= 25)
+	{
+		if(config::ini_parameters[24] == 1) { config::flags = 0x80000000; }
 	}
 
 	//Check for emulated system type
-	if(config::ini_parameters.size() >= 25)
+	if(config::ini_parameters.size() >= 26)
 	{
-		if((config::ini_parameters[24] >= 0) && (config::ini_parameters[24] <= 2))
+		if((config::ini_parameters[25] >= 0) && (config::ini_parameters[25] <= 2))
 		{
-			config::gb_type = config::ini_parameters[24];
+			config::gb_type = config::ini_parameters[25];
 		}
 	}
 

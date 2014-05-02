@@ -33,15 +33,15 @@ void GPU::dump_sprites()
 		//Create a hash for each sprite
 		for(int a = 0; a < sprite_height/2; a++)
 		{
-			u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
+			u16 temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 1);
 			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 
-			temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
+			temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr + 2);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 3);
 			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 		}
@@ -117,15 +117,15 @@ void GPU::dump_bg_tileset_1()
 	//Create a hash for the tile
 	for(int a = 0; a < 4; a++)
 	{
-		u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+		u16 temp_hash = mem_link->read_byte((a * 4) + tile_addr);
 		temp_hash << 8;
-		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+		temp_hash += mem_link->read_byte((a * 4) + tile_addr + 1);
 		temp_hash = temp_hash ^ hash_salt;
 		tile_set_1[dump_tile_1].hash += raw_to_64(temp_hash);
 
-		temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+		temp_hash = mem_link->read_byte((a * 4) + tile_addr + 2);
 		temp_hash << 8;
-		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+		temp_hash += mem_link->read_byte((a * 4) + tile_addr + 3);
 		temp_hash = temp_hash ^ hash_salt;
 		tile_set_1[dump_tile_1].hash += raw_to_64(temp_hash);
 	}
@@ -195,15 +195,15 @@ void GPU::dump_bg_tileset_0()
 	//Create a hash for the tile
 	for(int a = 0; a < 4; a++)
 	{
-		u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+		u16 temp_hash = mem_link->read_byte((a * 4) + tile_addr);
 		temp_hash << 8;
-		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+		temp_hash += mem_link->read_byte((a * 4) + tile_addr + 1);
 		temp_hash = temp_hash ^ hash_salt;
 		tile_set_0[dump_tile_0].hash += raw_to_64(temp_hash);
 
-		temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+		temp_hash = mem_link->read_byte((a * 4) + tile_addr + 2);
 		temp_hash << 8;
-		temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+		temp_hash += mem_link->read_byte((a * 4) + tile_addr + 3);
 		temp_hash = temp_hash ^ hash_salt;
 		tile_set_0[dump_tile_0].hash += raw_to_64(temp_hash);
 	}
@@ -307,15 +307,15 @@ void GPU::load_sprites()
 		//Create a hash for each sprite
 		for(int a = 0; a < sprite_height/2; a++)
 		{
-			u16 temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr];
+			u16 temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 1];
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 1);
 			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 
-			temp_hash = mem_link->memory_map[(a * 4) + sprite_tile_addr + 2];
+			temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr + 2);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + sprite_tile_addr + 3];
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 3);
 			temp_hash = temp_hash ^ hash_salt;
 			sprites[x].hash += raw_to_64(temp_hash);
 		}
@@ -342,6 +342,10 @@ void GPU::load_sprites()
 			{ 
 				custom_sprite_list[sprites[x].hash] = SDL_LoadBMP(load_file.c_str()); 
 				std::cout<<"GPU : Loading custom sprite - " << load_file << "\n";
+
+				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
+				u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
+				sprites[x].custom_data.resize(size, 0);
 
 				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
 			
@@ -423,15 +427,15 @@ void GPU::load_bg_tileset_1()
 		//Create a hash for the tile
 		for(int a = 0; a < 4; a++)
 		{
-			u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+			u16 temp_hash = mem_link->read_byte((a * 4) + tile_addr);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+			temp_hash += mem_link->read_byte((a * 4) + tile_addr + 1);
 			temp_hash = temp_hash ^ hash_salt;
 			tile_set_1[tile_set_1_updates[x]].hash += raw_to_64(temp_hash);
 
-			temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+			temp_hash = mem_link->read_byte((a * 4) + tile_addr + 2);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+			temp_hash += mem_link->read_byte((a * 4) + tile_addr + 3);
 			temp_hash = temp_hash ^ hash_salt;
 			tile_set_1[tile_set_1_updates[x]].hash += raw_to_64(temp_hash);
 		}	
@@ -458,12 +462,16 @@ void GPU::load_bg_tileset_1()
 			{ 
 				custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
 				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
+			
+				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
+				u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
+				tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0);
 
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 			
 				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
 
-				for(int a = 0; a < 0x40; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+				for(int a = 0; a < size; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 
@@ -479,8 +487,9 @@ void GPU::load_bg_tileset_1()
 			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 			
 			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
+			u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
 
-			for(int a = 0; a < 0x40; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+			for(int a = 0; a < size; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
 			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 
@@ -512,15 +521,15 @@ void GPU::load_bg_tileset_0()
 		//Create a hash for the tile
 		for(int a = 0; a < 4; a++)
 		{
-			u16 temp_hash = mem_link->memory_map[(a * 4) + tile_addr];
+			u16 temp_hash = mem_link->read_byte((a * 4) + tile_addr);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 1];
+			temp_hash += mem_link->read_byte((a * 4) + tile_addr + 1);
 			temp_hash = temp_hash ^ hash_salt;
 			tile_set_0[tile_set_0_updates[x]].hash += raw_to_64(temp_hash);
 
-			temp_hash = mem_link->memory_map[(a * 4) + tile_addr + 2];
+			temp_hash = mem_link->read_byte((a * 4) + tile_addr + 2);
 			temp_hash << 8;
-			temp_hash += mem_link->memory_map[(a * 4) + tile_addr + 3];
+			temp_hash += mem_link->read_byte((a * 4) + tile_addr + 3);
 			temp_hash = temp_hash ^ hash_salt;
 			tile_set_0[tile_set_0_updates[x]].hash += raw_to_64(temp_hash);
 		}	
@@ -548,11 +557,15 @@ void GPU::load_bg_tileset_0()
 				custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
 				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
 
+				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
+				u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
+				tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0);
+
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
 			
 				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
 
-				for(int a = 0; a < 0x40; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+				for(int a = 0; a < size; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
 
@@ -568,8 +581,9 @@ void GPU::load_bg_tileset_0()
 			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
 			
 			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
+			u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
 
-			for(int a = 0; a < 0x40; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
+			for(int a = 0; a < size; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
 			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
 

@@ -30,7 +30,7 @@
 struct gb_sprite
 {
 	u32 raw_data [0x80];
-	u32 custom_data[0x80];
+	std::vector <u32> custom_data;
 	u8 x;
 	int y; //TODO: Find a better way to handle off-screen coordinates
 	u8 tile_number;
@@ -42,7 +42,7 @@ struct gb_sprite
 struct gb_tile
 {
 	u32 raw_data[0x40];
-	u32 custom_data[0x40];
+	std::vector <u32> custom_data;
 	std::string hash;
 	bool custom_data_loaded;
 };
@@ -95,6 +95,7 @@ class GPU
 	//Pixel data
 	u32 scanline_pixel_data [0x100];
 	u32 final_pixel_data [0x10000];
+	std::vector <u32> custom_scaled_pixel_data;
 
 	//Palettes
 	u8 bgp[4];

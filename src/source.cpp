@@ -43,6 +43,8 @@ int main(int argc, char* args[])
 		return 1;
 	}
 
+	if(config::use_scaling) { std::cout<<"Hello?\n"; }
+
 	std::cout<<"Initializing Z80 CPU... \n";
 	CPU z80;
 	
@@ -69,8 +71,16 @@ int main(int argc, char* args[])
 	u8 op = 0;
 	u8 double_div = 1;
 
+	if(config::use_scaling) { std::cout<<"WTF\n"; }
+
 	//Initialize the screen - account for scaling, fullscreen
-	if((!config::use_scaling) && (!config::use_opengl)) 
+	if((config::custom_sprite_scale > 1) && (!config::use_opengl) && (config::load_sprites)) 
+	{ 
+		gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE | config::flags); 
+		std::cout<<"Using SDL renderer... \n";
+	}
+
+	else if((!config::use_scaling) && (!config::use_opengl)) 
 	{ 
 		gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE | config::flags); 
 		std::cout<<"Using SDL renderer... \n"; 

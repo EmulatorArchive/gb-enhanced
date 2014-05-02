@@ -30,6 +30,12 @@ GPU::GPU()
 		temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
 	}
 
+	else if((config::custom_sprite_scale > 1) && (config::load_sprites))
+	{
+		temp_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (256 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
+		custom_scaled_pixel_data.resize((temp_screen->w * temp_screen->h), 0);
+	}
+
 	src_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 144, 32, 0, 0, 0, 0);
 
 	//Initialize a bunch of data to 0 - Let's avoid segfaults...
@@ -41,16 +47,16 @@ GPU::GPU()
 	for(int x = 0; x < 40; x++)
 	{
 		memset(sprites[x].raw_data, 0, sizeof(sprites[x].raw_data));
-		memset(sprites[x].custom_data, 0, sizeof(sprites[x].custom_data));
+		sprites[x].custom_data.resize(0x80, 0);
 		sprites[x].custom_data_loaded = false;
 	}
 
 	for(int x = 0; x < 0x100; x++)
 	{
 		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].raw_data));
-		memset(tile_set_1[x].raw_data, 0, sizeof(tile_set_1[x].custom_data));
 		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].raw_data));
-		memset(tile_set_0[x].raw_data, 0, sizeof(tile_set_0[x].custom_data));
+		tile_set_1[x].custom_data.resize(0x40, 0);
+		tile_set_0[x].custom_data.resize(0x40, 0);
 		memset(gbc_tile_set_1[x][0].raw_data, 0, sizeof(gbc_tile_set_1[x][0].raw_data));
 		memset(gbc_tile_set_1[x][1].raw_data, 0, sizeof(gbc_tile_set_1[x][1].raw_data));
 		memset(gbc_tile_set_0[x][0].raw_data, 0, sizeof(gbc_tile_set_1[x][0].raw_data));
@@ -381,16 +387,49 @@ void GPU::generate_scanline()
 
 				bg_win_raw_data[current_pixel] = tile_pixel;
 
+				//Load custom background tile data for Tile Set 1
 				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded)) 
-				{ 
-					scanline_pixel_data[current_pixel] = tile_set_1[map_entry].custom_data[y];
+				{
+					//Render 1:1
+					if(config::custom_sprite_scale == 1)
+					{
+						scanline_pixel_data[current_pixel] = tile_set_1[map_entry].custom_data[y];
+					}
+
+					//Render 'HD'
+					else
+					{
+						u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
+						u32 hd_index = ((y/8) * 32) + ((y%8) * 2);
+						custom_scaled_pixel_data[hd_pixel_plotter] = tile_set_1[map_entry].custom_data[hd_index];
+						custom_scaled_pixel_data[hd_pixel_plotter+1] = tile_set_1[map_entry].custom_data[hd_index + 1];
+						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = tile_set_1[map_entry].custom_data[hd_index + 16];
+						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = tile_set_1[map_entry].custom_data[hd_index + 16 + 1];	
+					}
 				}
 
+				//Load custom background tile data for Tile Set 0
 				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded))
 				{
-					scanline_pixel_data[current_pixel] = tile_set_0[map_entry].custom_data[y];
+					//Render 1:1
+					if(config::custom_sprite_scale == 1)
+					{
+						scanline_pixel_data[current_pixel] = tile_set_0[map_entry].custom_data[y];
+					}
+
+					//Render 'HD'
+					else
+					{
+						u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
+						u32 hd_index = ((y/8) * 32) + ((y%8) * 2);
+						custom_scaled_pixel_data[hd_pixel_plotter] = tile_set_0[map_entry].custom_data[hd_index];
+						custom_scaled_pixel_data[hd_pixel_plotter+1] = tile_set_0[map_entry].custom_data[hd_index + 1];
+						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = tile_set_0[map_entry].custom_data[hd_index + 16];
+						custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = tile_set_0[map_entry].custom_data[hd_index + 16 + 1];
+					}
 				}
 
+				//Load original background tile data
 				else
 				{
 					//Output Scanline data to RGBA - DMG Mode
@@ -414,6 +453,17 @@ void GPU::generate_scanline()
 							case 3: 
 								scanline_pixel_data[current_pixel] = 0xFF000000;
 								break;
+						}
+
+						//When using custom pixel data with a scale of 2 or more, and when there is no custom pixel data for a given tile...
+						//GBE needs to scale the tile pixel data here (nearest neighbor) else the tile does not show up at all (i.e. not drawn at all).
+						if((config::load_sprites) && (config::custom_sprite_scale > 1))
+						{
+							u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
+							custom_scaled_pixel_data[hd_pixel_plotter] = scanline_pixel_data[current_pixel];
+							custom_scaled_pixel_data[hd_pixel_plotter+1] = scanline_pixel_data[current_pixel];
+							custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w] = scanline_pixel_data[current_pixel];
+							custom_scaled_pixel_data[hd_pixel_plotter+temp_screen->w+1] = scanline_pixel_data[current_pixel];
 						}
 					}
 
@@ -454,6 +504,12 @@ void GPU::generate_scanline()
 				{
 					if((mem_link->memory_map[REG_LCDC] & 0x10) && (map_entry == dump_tile_1)) { scanline_pixel_data[current_pixel] += 0x00700000; }
 					else if(((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (map_entry == dump_tile_0)) { scanline_pixel_data[current_pixel] += 0x00700000; }
+				}
+
+				//Manually scale when the custom sprite scale factor is greater than 1
+				if((config::custom_sprite_scale > 1) && (config::load_sprites))
+				{
+					
 				}
 
 				current_pixel++;
@@ -819,13 +875,13 @@ void GPU::generate_sprites()
 		if(h_flip == 1) 
 		{ 
 			horizontal_flip(8, sprite_height, sprites[x].raw_data);
-			horizontal_flip(8, sprite_height, sprites[x].custom_data); 
+			horizontal_flip(8, sprite_height, &sprites[x].custom_data[0]); 
 		}
 
 		if(v_flip == 1) 
 		{ 
 			vertical_flip(8, sprite_height, sprites[x].raw_data);
-			vertical_flip(8, sprite_height, sprites[x].custom_data); 
+			vertical_flip(8, sprite_height, &sprites[x].custom_data[0]); 
 		}
 	}
 }
@@ -861,6 +917,23 @@ void GPU::render_screen()
 		apply_scaling(src_screen, temp_screen);
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
 	}
+
+	//Use HD custom pixel data buffer
+	else if((config::custom_sprite_scale > 1) && (config::load_sprites))
+	{
+		if(SDL_MUSTLOCK(temp_screen)){ SDL_LockSurface(temp_screen); }
+		
+		u32* out_pixel_data = (u32*)temp_screen->pixels;
+		for(int a = 0; a < custom_scaled_pixel_data.size(); a++)
+		{
+			out_pixel_data[a] = custom_scaled_pixel_data[a];
+			custom_scaled_pixel_data[a] = 0xFFFFFFFF;
+		}
+
+		if(SDL_MUSTLOCK(temp_screen)){ SDL_UnlockSurface(temp_screen); }
+
+		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
+	}	
 	
 	//Or just blit to unscaled image to screen
 	else { SDL_BlitSurface(src_screen, 0, gpu_screen, 0); }

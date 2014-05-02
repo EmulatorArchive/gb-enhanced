@@ -41,6 +41,7 @@ namespace config
 	extern u32 mouse_x;
 	extern u32 mouse_y;
 	extern u8 gb_type;
+	extern u8 custom_sprite_scale;
 }
 
 #endif // GB_CONFIG

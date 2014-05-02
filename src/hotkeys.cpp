@@ -80,7 +80,12 @@ void toggle_fullscreen(GPU& gb_gpu)
 	else { config::flags = 0x80000000; }
 
 	//Initialize the screen - account for scaling, fullscreen
-	if((!config::use_scaling) && (!config::use_opengl)) 
+	if((config::custom_sprite_scale > 1) && (!config::use_opengl) && (config::load_sprites)) 
+	{ 
+		gb_gpu.gpu_screen = SDL_SetVideoMode((160 * config::scaling_factor), (144 * config::scaling_factor), 32, SDL_SWSURFACE | config::flags); 
+	}
+
+	else if((!config::use_scaling) && (!config::use_opengl)) 
 	{ 
 		gb_gpu.gpu_screen = SDL_SetVideoMode(160, 144, 32, SDL_SWSURFACE | config::flags); 
 	}
