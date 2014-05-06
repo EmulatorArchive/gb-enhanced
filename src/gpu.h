@@ -35,8 +35,11 @@ struct gb_sprite
 	int y; //TODO: Find a better way to handle off-screen coordinates
 	u8 tile_number;
 	u8 options;
+
 	std::string hash;
 	bool custom_data_loaded;
+	u32 custom_width;
+	u32 custom_height;
 };
 
 struct gb_tile

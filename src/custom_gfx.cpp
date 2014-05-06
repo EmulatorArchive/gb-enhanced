@@ -345,13 +345,16 @@ void GPU::load_sprites()
 
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
 				u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
-				sprites[x].custom_data.resize(size, 0);
+				sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
+				sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
+
+				if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
 			
 				u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
 
-				for(int a = 0; a < (8 * sprite_height); a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
+				for(int a = 0; a < size; a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
 
@@ -367,45 +370,20 @@ void GPU::load_sprites()
 			if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
 			
 			u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
+			u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
+			sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
+			sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
 
-			for(int a = 0; a < (8 * sprite_height); a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
+			if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
+
+			for(int a = 0; a < size; a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
 
 			if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
 
 			sprites[x].custom_data_loaded = true;
 		}
 
-		//Load normal data even if no match in the map is found
-		else if((!add_sprite_hash) && (custom_sprite_list_itr == custom_sprite_list.end()))
-		{
-			sprites[x].custom_data_loaded = false;
-
-			//Read Sprite Options
-			u8 pal = sprites[x].options & 0x10 ? 1 : 0;
-			sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
-			u8 pixel_counter = 0;
-
-			//Cycles through tile
-			for(int y = 0; y < sprite_height; y++)
-			{
-				//Grab High and Low Bytes for Tile
-				high_byte = mem_link->memory_map[sprite_tile_addr];
-				low_byte = mem_link->memory_map[sprite_tile_addr+1];
-
-				//Cycle through High and Low bytes
-				for(int z = 7; z >= 0; z--)
-				{
-					high_bit = (high_byte >> z) & 0x01;
-					low_bit = (low_byte >> z) & 0x01;
-					final_byte = high_bit + (low_bit * 2);
-
-					sprites[x].raw_data[pixel_counter] = final_byte;
-					pixel_counter++;
-				}
-
-				sprite_tile_addr += 2;
-			}
-		}
+		else { sprites[x].custom_data_loaded = false; }
 	}
 }
 
@@ -465,7 +443,8 @@ void GPU::load_bg_tileset_1()
 			
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
 				u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
-				tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0);
+
+				if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 			
@@ -487,7 +466,9 @@ void GPU::load_bg_tileset_1()
 			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
 			
 			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
-			u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
+			u32 size = tile_set_1[tile_set_1_updates[x]].custom_data.size();
+
+			if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 
 			for(int a = 0; a < size; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
@@ -559,7 +540,8 @@ void GPU::load_bg_tileset_0()
 
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
 				u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
-				tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0);
+
+				if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
 			
@@ -582,6 +564,8 @@ void GPU::load_bg_tileset_0()
 			
 			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
 			u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
+
+			if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
 			for(int a = 0; a < size; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
 
