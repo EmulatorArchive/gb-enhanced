@@ -348,6 +348,12 @@ void GPU::load_sprites()
 				sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
 				sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
 
+				//Verify sizes
+				if((sprites[x].custom_width != (8 * config::custom_sprite_scale)) || (sprites[x].custom_height != (sprite_height * config::custom_sprite_scale)))
+				{
+					std::cout<<"GPU : Custom sprite - " << load_file << " was the wrong size! This will cause issues.\n";
+				}
+
 				if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
 
 				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
@@ -443,6 +449,13 @@ void GPU::load_bg_tileset_1()
 			
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
 				u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
+
+				//Verify sizes
+				if((custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w != (8 * config::custom_sprite_scale)) 
+				|| (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h != (8 * config::custom_sprite_scale)))
+				{
+					std::cout<<"GPU : Custom tile - " << load_file << " was the wrong size! This will cause issues.\n";
+				}
 
 				if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 
@@ -540,6 +553,13 @@ void GPU::load_bg_tileset_0()
 
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
 				u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
+
+				//Verify sizes
+				if((custom_sprite_list[tile_set_1[tile_set_0_updates[x]].hash]->w != (8 * config::custom_sprite_scale)) 
+				|| (custom_sprite_list[tile_set_1[tile_set_0_updates[x]].hash]->h != (8 * config::custom_sprite_scale)))
+				{
+					std::cout<<"GPU : Custom tile - " << load_file << " was the wrong size! This will cause issues.\n";
+				}
 
 				if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
