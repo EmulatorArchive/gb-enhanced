@@ -65,6 +65,8 @@ void GPU::dump_sprites()
 
 			u32* dump_pixel_data = (u32*)custom_sprite->pixels;
 
+			bool solid_color = true;
+
 			//Generate RGBA values of the sprite for the dump file
 			for(int a = 0; a < (8 * sprite_height); a++)
 			{
@@ -86,6 +88,8 @@ void GPU::dump_sprites()
 						dump_pixel_data[a] = 0xFF000000;
 						break;
 				}
+
+				if(dump_pixel_data[a] != dump_pixel_data[0]) { solid_color = false; }
 			}
 
 			//Reverse any flipping to get the original sprite's orentation
@@ -94,9 +98,14 @@ void GPU::dump_sprites()
 
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
 
-			//Save to BMP
-			std::cout<<"GPU : Saving Sprite - " << dump_file << "\n";
-			SDL_SaveBMP(custom_sprite, dump_file.c_str());
+			//If the dumped sprites are one solid color, it is usually safe to ignore it completely
+			//Only dump the sprites here if it is not a solid color
+			if(!solid_color)
+			{
+				//Save to BMP
+				std::cout<<"GPU : Saving Sprite - " << dump_file << "\n";
+				SDL_SaveBMP(custom_sprite, dump_file.c_str());
+			}
 		}
 	}
 }
