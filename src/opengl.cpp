@@ -40,11 +40,24 @@ void GPU::opengl_blit()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	int width = (256 * config::scaling_factor)/2;
-	int height = (256 * config::scaling_factor)/2;
-	int x = 128 * config::scaling_factor;
-	int y = 128 * config::scaling_factor;
+	int width, height, x, y;
 
+	if(config::custom_sprite_scale == 1)
+	{
+		width = (256 * config::scaling_factor)/2;
+		height = (256 * config::scaling_factor)/2;
+		x = 128 * config::scaling_factor;
+		y = 128 * config::scaling_factor;
+	}
+
+	else
+	{
+		width = 256;
+		height = 256;
+		x = 128;
+		y = 128;
+	}
+		
 	glTranslatef(x, y, 0);
 
 	glBindTexture(GL_TEXTURE_2D, gpu_texture);
