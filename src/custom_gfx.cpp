@@ -10,6 +10,33 @@
 
 #include "gpu.h"
 
+/****** Takes data from SDL_LoadBMP and adjusts it to 32-bit values if necessary ******/
+void GPU::load_bmp_data(int size, SDL_Surface* custom_source, u32 custom_dest[])
+{
+	int custom_bpp = custom_source->format->BitsPerPixel;
+	
+	if(SDL_MUSTLOCK(custom_source)){ SDL_LockSurface(custom_source); }
+
+	//Load 32-bit BMP data
+	if(custom_bpp == 32)
+	{
+		u32* custom_pixel_data = (u32*)custom_source->pixels;
+		for(int a = 0; a < size; a++) { custom_dest[a] = custom_pixel_data[a]; }
+	}
+
+	//Load 24-bit BMP data
+	else if(custom_bpp == 24)
+	{
+		u8* custom_pixel_data = (u8*)custom_source->pixels;
+		for(int a = 0, b = 0; a < size; a++, b+=3)
+		{
+			custom_dest[a] = 0xFF000000 | (custom_pixel_data[b+2] << 16) | (custom_pixel_data[b+1] << 8) | (custom_pixel_data[b]);
+		}
+	}
+
+	if(SDL_MUSTLOCK(custom_source)){ SDL_UnlockSurface(custom_source); }
+}
+
 /****** Dumps sprites to files ******/
 void GPU::dump_sprites()
 {
@@ -365,13 +392,7 @@ void GPU::load_sprites()
 
 				if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
 
-				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
-			
-				u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
-
-				for(int a = 0; a < size; a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
-
-				if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
+				load_bmp_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
 
 				sprites[x].custom_data_loaded = true;
 			}
@@ -381,19 +402,14 @@ void GPU::load_sprites()
 
 		//If hash already exists in the list, try to read custom sprite data from the map
 		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
-		{
-			if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_LockSurface(custom_sprite_list[sprites[x].hash]); }
-			
-			u32* custom_pixel_data = (u32*)custom_sprite_list[sprites[x].hash]->pixels;
+		{	
 			u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
 			sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
 			sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
 
 			if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
 
-			for(int a = 0; a < size; a++) { sprites[x].custom_data[a] = custom_pixel_data[a]; }
-
-			if(SDL_MUSTLOCK(custom_sprite_list[sprites[x].hash])){ SDL_UnlockSurface(custom_sprite_list[sprites[x].hash]); }
+			load_bmp_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
 
 			sprites[x].custom_data_loaded = true;
 		}
@@ -467,14 +483,8 @@ void GPU::load_bg_tileset_1()
 				}
 
 				if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
-
-				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
-			
-				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
-
-				for(int a = 0; a < size; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
-
-				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+		
+				load_bmp_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
 
 				tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
 			}
@@ -484,17 +494,12 @@ void GPU::load_bg_tileset_1()
 
 		//If hash already exists in the list, try to read custom sprite data from the map
 		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
-		{
-			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
-			
-			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->pixels;
-			u32 size = tile_set_1[tile_set_1_updates[x]].custom_data.size();
+		{	
+			u32 size = (custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->w * custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]->h);
 
 			if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 
-			for(int a = 0; a < size; a++) { tile_set_1[tile_set_1_updates[x]].custom_data[a] = custom_pixel_data[a]; }
-
-			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash]); }
+			load_bmp_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
 
 			tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
 		}
@@ -513,7 +518,7 @@ void GPU::load_bg_tileset_0()
 
 	u16 hash_salt = mem_link->memory_map[REG_BGP];
 
-	//Load BG tiles from Tile Set 1
+	//Load BG tiles from Tile Set 0
 	for(int x = 0; x < tile_set_0_updates.size(); x++)
 	{
 		u16 tile_addr = (tile_set_0_updates[x] * 16) + 0x8800;
@@ -564,21 +569,15 @@ void GPU::load_bg_tileset_0()
 				u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
 
 				//Verify sizes
-				if((custom_sprite_list[tile_set_1[tile_set_0_updates[x]].hash]->w != (8 * config::custom_sprite_scale)) 
-				|| (custom_sprite_list[tile_set_1[tile_set_0_updates[x]].hash]->h != (8 * config::custom_sprite_scale)))
+				if((custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w != (8 * config::custom_sprite_scale)) 
+				|| (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h != (8 * config::custom_sprite_scale)))
 				{
 					std::cout<<"GPU : Custom tile - " << load_file << " was the wrong size! This will cause issues.\n";
 				}
 
 				if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
-				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
-			
-				u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
-
-				for(int a = 0; a < size; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
-
-				if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+				load_bmp_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
 
 				tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 			}
@@ -589,16 +588,11 @@ void GPU::load_bg_tileset_0()
 		//If hash already exists in the list, try to read custom sprite data from the map
 		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
 		{
-			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_LockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
-			
-			u32* custom_pixel_data = (u32*)custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->pixels;
 			u32 size = (custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->w * custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]->h);
 
 			if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
-			for(int a = 0; a < size; a++) { tile_set_0[tile_set_0_updates[x]].custom_data[a] = custom_pixel_data[a]; }
-
-			if(SDL_MUSTLOCK(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash])){ SDL_UnlockSurface(custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash]); }
+			load_bmp_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
 
 			tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 		}

@@ -144,6 +144,8 @@ class GPU
 	void load_bg_tileset_1();
 	void load_bg_tileset_0();
 
+	void load_bmp_data(int size, SDL_Surface* custom_source, u32 custom_dest[]);
+
 	u32 dump_mode;
 
 	u32 dump_tile_0;
