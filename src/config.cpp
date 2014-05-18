@@ -96,8 +96,8 @@ bool parse_cli_args()
 			{ 
 				config::load_sprites = true; 
 				config::dump_sprites = false; 
-				config::use_scaling = false;
-				config::scaling_factor = config::custom_sprite_scale;
+				
+				if(config::custom_sprite_scale > 1) { config::scaling_factor = config::custom_sprite_scale; config::use_scaling = false; }
 			}
 
 			//Use fullscreen mode
@@ -106,34 +106,43 @@ bool parse_cli_args()
 			//Set scaling filter #1 - Nearest Neighbor 2x
 			else if((config::cli_args[x] == "--f1") && (scaling_parsed == false))
 			{
-				config::scaling_mode = 1;
-				config::use_scaling = true;
-				config::scaling_factor = 2;
-				scaling_parsed = true;
-				std::cout<<"Scaling Filter : On \n";
-				std::cout<<"Scaling Mode : Nearest Neighbor 2x\n";
+				if(config::custom_sprite_scale == 1)
+				{
+					config::scaling_mode = 1;
+					config::use_scaling = true;
+					config::scaling_factor = 2;
+					scaling_parsed = true;
+					std::cout<<"Scaling Filter : On \n";
+					std::cout<<"Scaling Mode : Nearest Neighbor 2x\n";
+				}
 			}
 
 			//Set scaling filter #2 - Nearest Neighbor 3x
 			else if((config::cli_args[x] == "--f2") && (scaling_parsed == false))
 			{
-				config::scaling_mode = 2;
-				config::use_scaling = true;
-				config::scaling_factor = 3;
-				scaling_parsed = true;
-				std::cout<<"Scaling Filter : On \n";
-				std::cout<<"Scaling Mode : Nearest Neighbor 3x\n";
+				if(config::custom_sprite_scale == 1)
+				{
+					config::scaling_mode = 2;
+					config::use_scaling = true;
+					config::scaling_factor = 3;
+					scaling_parsed = true;
+					std::cout<<"Scaling Filter : On \n";
+					std::cout<<"Scaling Mode : Nearest Neighbor 3x\n";
+				}
 			}
 
 			//Set scaling filter #2 - Nearest Neighbor 4x
 			else if((config::cli_args[x] == "--f3") && (scaling_parsed == false))
 			{
-				config::scaling_mode = 3;
-				config::use_scaling = true;
-				config::scaling_factor = 4;
-				scaling_parsed = true;
-				std::cout<<"Scaling Filter : On \n";
-				std::cout<<"Scaling Mode : Nearest Neighbor 4x\n";
+				if(config::custom_sprite_scale == 1)
+				{
+					config::scaling_mode = 3;
+					config::use_scaling = true;
+					config::scaling_factor = 4;
+					scaling_parsed = true;
+					std::cout<<"Scaling Filter : On \n";
+					std::cout<<"Scaling Mode : Nearest Neighbor 4x\n";
+				}
 			}
 
 			//Warn users about passing multiple scaling methods

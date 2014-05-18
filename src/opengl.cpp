@@ -29,7 +29,15 @@ void GPU::opengl_init()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gpu_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (160 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
+	if(config::custom_sprite_scale == 1)
+	{
+		gpu_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 160, 144, 32, 0, 0, 0, 0);
+	}
+
+	else
+	{
+		gpu_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (160 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
+	}
 }
 
 /****** Blit using OpenGL ******/
