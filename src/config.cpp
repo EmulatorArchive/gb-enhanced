@@ -57,6 +57,9 @@ namespace config
 
 	//Custom sprite scaling factor
 	u8 custom_sprite_scale = 1;
+
+	//Custom sprite image type
+	u8 custom_sprite_type = 0;
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -93,11 +96,8 @@ bool parse_cli_args()
 			{ 
 				config::load_sprites = true; 
 				config::dump_sprites = false; 
-				if(config::custom_sprite_scale > 1) 
-				{ 
-					config::use_scaling = false;
-					config::scaling_factor = config::custom_sprite_scale;
-				}
+				config::use_scaling = false;
+				config::scaling_factor = config::custom_sprite_scale;
 			}
 
 			//Use fullscreen mode
@@ -324,18 +324,27 @@ bool parse_config_file()
 		}
 	}
 
-	//Check for fullscreen
+	//Check for custom sprite image type
 	if(config::ini_parameters.size() >= 25)
 	{
-		if(config::ini_parameters[24] == 1) { config::flags = 0x80000000; }
+		if((config::ini_parameters[24] >= 0) && (config::ini_parameters[24] <= 1)) 
+		{ 
+			config::custom_sprite_type = config::ini_parameters[24];
+		}
+	}
+
+	//Check for fullscreen
+	if(config::ini_parameters.size() >= 26)
+	{
+		if(config::ini_parameters[25] == 1) { config::flags = 0x80000000; }
 	}
 
 	//Check for emulated system type
-	if(config::ini_parameters.size() >= 26)
+	if(config::ini_parameters.size() >= 27)
 	{
-		if((config::ini_parameters[25] >= 0) && (config::ini_parameters[25] <= 2))
+		if((config::ini_parameters[26] >= 0) && (config::ini_parameters[26] <= 2))
 		{
-			config::gb_type = config::ini_parameters[25];
+			config::gb_type = config::ini_parameters[26];
 		}
 	}
 

@@ -9,30 +9,45 @@
 // Handles dumping original BG and Sprite tiles or loading custom pixel data
 
 #include "gpu.h"
+#include "SDL/SDL_image.h"
 
-/****** Takes data from SDL_LoadBMP and adjusts it to 32-bit values if necessary ******/
-void GPU::load_bmp_data(int size, SDL_Surface* custom_source, u32 custom_dest[])
+/****** Takes 24-bit data from loaded image and converts it to 32-bit ARGB ******/
+void GPU::load_image_data(int size, SDL_Surface* custom_source, u32 custom_dest[])
 {
 	int custom_bpp = custom_source->format->BitsPerPixel;
 	
 	if(SDL_MUSTLOCK(custom_source)){ SDL_LockSurface(custom_source); }
 
-	//Load 32-bit BMP data
-	if(custom_bpp == 32)
-	{
-		u32* custom_pixel_data = (u32*)custom_source->pixels;
-		for(int a = 0; a < size; a++) { custom_dest[a] = custom_pixel_data[a]; }
-	}
-
-	//Load 24-bit BMP data
+	//Load 24-bit data
 	else if(custom_bpp == 24)
 	{
 		u8* custom_pixel_data = (u8*)custom_source->pixels;
 		for(int a = 0, b = 0; a < size; a++, b+=3)
 		{
-			custom_dest[a] = 0xFF000000 | (custom_pixel_data[b+2] << 16) | (custom_pixel_data[b+1] << 8) | (custom_pixel_data[b]);
+
+			//Convert BMP data
+			if(config::custom_sprite_type == 0) 
+			{
+				custom_dest[a] = 0xFF000000 | (custom_pixel_data[b+2] << 16) | (custom_pixel_data[b+1] << 8) | (custom_pixel_data[b]);
+			}
+
+			//Convert PNG data
+			else 
+			{
+				custom_dest[a] = 0xFF000000 | (custom_pixel_data[b] << 16) | (custom_pixel_data[b+1] << 8) | (custom_pixel_data[b+2]);
+			}
 		}
 	}
+
+	//If a format other than 24-bit, just draw white pixels
+	else 
+	{
+		for(int a = 0; a < size; a++)
+		{
+			custom_dest[a] = 0xFFFFFFFF;
+		}
+	}
+	
 
 	if(SDL_MUSTLOCK(custom_source)){ SDL_UnlockSurface(custom_source); }
 }
@@ -370,13 +385,23 @@ void GPU::load_sprites()
 		{ 
 			sprite_hash_list.push_back(sprites[x].hash);
 
-			std::string load_file = "Load/Sprites/" + sprites[x].hash + ".bmp";
-			custom_sprite = SDL_LoadBMP(load_file.c_str());
+			std::string load_file = "";
+			if(config::custom_sprite_type == 0) 
+			{
+				load_file = "Load/Sprites/" + sprites[x].hash + ".bmp";
+				custom_sprite = SDL_LoadBMP(load_file.c_str()); 
+			}
+
+			else 
+			{
+				load_file = "Load/Sprites/" + sprites[x].hash + ".png";
+				custom_sprite = IMG_Load(load_file.c_str());
+			} 
 
 			//Load custom sprite data into map and custom data
 			if(custom_sprite != NULL) 
 			{ 
-				custom_sprite_list[sprites[x].hash] = SDL_LoadBMP(load_file.c_str()); 
+				custom_sprite_list[sprites[x].hash] = custom_sprite; 
 				std::cout<<"GPU : Loading custom sprite - " << load_file << "\n";
 
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
@@ -391,8 +416,8 @@ void GPU::load_sprites()
 				}
 
 				if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
-
-				load_bmp_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
+				
+				load_image_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
 
 				sprites[x].custom_data_loaded = true;
 			}
@@ -409,7 +434,7 @@ void GPU::load_sprites()
 
 			if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
 
-			load_bmp_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
+			load_image_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
 
 			sprites[x].custom_data_loaded = true;
 		}
@@ -463,13 +488,23 @@ void GPU::load_bg_tileset_1()
 		{ 
 			sprite_hash_list.push_back(tile_set_1[tile_set_1_updates[x]].hash);
 
-			std::string load_file = "Load/BG/" + tile_set_1[tile_set_1_updates[x]].hash + ".bmp";
-			custom_tile = SDL_LoadBMP(load_file.c_str());
+			std::string load_file = "";
+			if(config::custom_sprite_type == 0) 
+			{
+				load_file = "Load/BG/" + tile_set_1[tile_set_1_updates[x]].hash + ".bmp";
+				custom_tile = SDL_LoadBMP(load_file.c_str()); 
+			}
+
+			else 
+			{
+				load_file = "Load/BG/" + tile_set_1[tile_set_1_updates[x]].hash + ".png";
+				custom_tile = IMG_Load(load_file.c_str());
+			} 
 
 			//Load custom sprite data into map and raw data
 			if(custom_tile != NULL) 
 			{ 
-				custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
+				custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash] = custom_tile; 
 				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
 			
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
@@ -484,7 +519,7 @@ void GPU::load_bg_tileset_1()
 
 				if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 		
-				load_bmp_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
+				load_image_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
 
 				tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
 			}
@@ -499,7 +534,7 @@ void GPU::load_bg_tileset_1()
 
 			if(tile_set_1[tile_set_1_updates[x]].custom_data.size() != size) { tile_set_1[tile_set_1_updates[x]].custom_data.resize(size, 0); }
 
-			load_bmp_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
+			load_image_data(size, custom_sprite_list[tile_set_1[tile_set_1_updates[x]].hash], &tile_set_1[tile_set_1_updates[x]].custom_data[0]);
 
 			tile_set_1[tile_set_1_updates[x]].custom_data_loaded = true;
 		}
@@ -556,13 +591,23 @@ void GPU::load_bg_tileset_0()
 		{ 
 			sprite_hash_list.push_back(tile_set_0[tile_set_0_updates[x]].hash);
 
-			std::string load_file = "Load/BG/" + tile_set_0[tile_set_0_updates[x]].hash + ".bmp";
-			custom_tile = SDL_LoadBMP(load_file.c_str());
+			std::string load_file = "";
+			if(config::custom_sprite_type == 0) 
+			{
+				load_file = "Load/BG/" + tile_set_0[tile_set_0_updates[x]].hash + ".bmp";
+				custom_tile = SDL_LoadBMP(load_file.c_str()); 
+			}
+
+			else 
+			{
+				load_file = "Load/BG/" + tile_set_0[tile_set_0_updates[x]].hash + ".png";
+				custom_tile = IMG_Load(load_file.c_str());
+			} 
 
 			//Load custom sprite data into map and raw data
 			if(custom_tile != NULL) 
 			{ 
-				custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash] = SDL_LoadBMP(load_file.c_str()); 
+				custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash] = custom_tile; 
 				std::cout<<"GPU : Loading custom tile - " << load_file << "\n";
 
 				//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
@@ -577,7 +622,7 @@ void GPU::load_bg_tileset_0()
 
 				if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
-				load_bmp_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
+				load_image_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
 
 				tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 			}
@@ -592,7 +637,7 @@ void GPU::load_bg_tileset_0()
 
 			if(tile_set_0[tile_set_0_updates[x]].custom_data.size() != size) { tile_set_0[tile_set_0_updates[x]].custom_data.resize(size, 0); }
 
-			load_bmp_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
+			load_image_data(size, custom_sprite_list[tile_set_0[tile_set_0_updates[x]].hash], &tile_set_0[tile_set_0_updates[x]].custom_data[0]);
 
 			tile_set_0[tile_set_0_updates[x]].custom_data_loaded = true;
 		}

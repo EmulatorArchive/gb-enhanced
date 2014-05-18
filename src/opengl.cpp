@@ -29,7 +29,7 @@ void GPU::opengl_init()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gpu_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 256, 256, 32, 0, 0, 0, 0);
+	gpu_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, (160 * config::scaling_factor), (144 * config::scaling_factor), 32, 0, 0, 0, 0);
 }
 
 /****** Blit using OpenGL ******/
@@ -42,21 +42,10 @@ void GPU::opengl_blit()
 
 	int width, height, x, y;
 
-	if(config::custom_sprite_scale == 1)
-	{
-		width = (256 * config::scaling_factor)/2;
-		height = (256 * config::scaling_factor)/2;
-		x = 128 * config::scaling_factor;
-		y = 128 * config::scaling_factor;
-	}
-
-	else
-	{
-		width = 256;
-		height = 256;
-		x = 128;
-		y = 128;
-	}
+	width = (160 * config::scaling_factor)/2;
+	height = (144 * config::scaling_factor)/2;
+	x = (80 * config::scaling_factor);
+	y = (72 * config::scaling_factor);
 		
 	glTranslatef(x, y, 0);
 

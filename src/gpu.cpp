@@ -786,7 +786,7 @@ void GPU::generate_scanline()
 						}
 
 						//Render HD
-						else
+						else if(config::custom_sprite_scale > 1)
 						{
 							u32 hd_pixel_plotter = (mem_link->memory_map[REG_LY] * temp_screen->w * config::custom_sprite_scale) + (current_pixel * config::custom_sprite_scale);
 							u32 hd_index = ((y/8) * (8*config::custom_sprite_scale*config::custom_sprite_scale)) + ((y%8) * config::custom_sprite_scale);
