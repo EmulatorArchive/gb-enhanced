@@ -1052,7 +1052,7 @@ void GPU::step(int cpu_clock)
 					{
 						u16 start_addr = (mem_link->memory_map[REG_HDMA1] << 8) | mem_link->memory_map[REG_HDMA2];
 						u16 dest_addr = (mem_link->memory_map[REG_HDMA3] << 8) | mem_link->memory_map[REG_HDMA4];
-						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x7F) + 1;
+						u8 line_transfer_count = (mem_link->memory_map[REG_HDMA5] & 0x7F);
 
 						start_addr += (mem_link->gpu_hdma_current_line * 16);
 						dest_addr += (mem_link->gpu_hdma_current_line * 16);
@@ -1073,14 +1073,14 @@ void GPU::step(int cpu_clock)
 							
 						mem_link->gpu_hdma_current_line++;
 
-						if((line_transfer_count - 1) == 0) 
+						if(line_transfer_count == 0) 
 						{ 
 							mem_link->gpu_hdma_in_progress = false;
 							mem_link->memory_map[REG_HDMA5] = 0xFF;
 							mem_link->gpu_hdma_current_line = 0;
 						}
 
-						else { line_transfer_count--; mem_link->memory_map[REG_HDMA5] |= line_transfer_count; }
+						else { line_transfer_count--; mem_link->memory_map[REG_HDMA5] = line_transfer_count; }
 					}
 
 					generate_scanline();
