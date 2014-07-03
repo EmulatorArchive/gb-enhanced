@@ -400,19 +400,19 @@ void GPU::generate_scanline()
 						switch(bgp[tile_pixel])
 						{
 							case 0: 
-								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[0];
 								break;
 
 							case 1: 
-								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[1];
 								break;
 
 							case 2: 
-								scanline_pixel_data[current_pixel] = 0xFF606060;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[2];
 								break;
 
 							case 3: 
-								scanline_pixel_data[current_pixel] = 0xFF000000;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[3];
 								break;
 						}
 					}
@@ -532,19 +532,19 @@ void GPU::generate_scanline()
 						switch(bgp[tile_pixel])
 						{
 							case 0: 
-								scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[0];
 								break;
 
 							case 1: 
-								scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[1];
 								break;
 
 							case 2: 
-								scanline_pixel_data[current_pixel] = 0xFF606060;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[2];
 								break;
 
 							case 3: 
-								scanline_pixel_data[current_pixel] = 0xFF000000;
+								scanline_pixel_data[current_pixel] = config::DMG_PAL_BG[3];
 								break;
 						}
 					}
@@ -667,19 +667,19 @@ void GPU::generate_scanline()
 								switch(obp[sprites[current_sprite].raw_data[y]][pal])
 								{
 									case 0: 
-										scanline_pixel_data[current_pixel] = 0xFFFFFFFF;
+										scanline_pixel_data[current_pixel] = config::DMG_PAL_OBJ[0][pal];
 										break;
 
 									case 1: 
-										scanline_pixel_data[current_pixel] = 0xFFC0C0C0;
+										scanline_pixel_data[current_pixel] = config::DMG_PAL_OBJ[1][pal];
 										break;
 
 									case 2: 
-										scanline_pixel_data[current_pixel] = 0xFF606060;
+										scanline_pixel_data[current_pixel] = config::DMG_PAL_OBJ[2][pal];
 										break;
 
 									case 3: 
-										scanline_pixel_data[current_pixel] = 0xFF000000;
+										scanline_pixel_data[current_pixel] = config::DMG_PAL_OBJ[3][pal];
 										break;
 								}
 							}
@@ -958,6 +958,15 @@ void GPU::step(int cpu_clock)
 		background_colors_final[color][palette] = 0xFF000000 | (red << 16) | (green << 8) | (blue);
 		mem_link->background_colors_raw[color][palette] = background_colors_raw[color][palette];
 
+		//Update DMG BG palette when using GBC BIOS
+		if(mem_link->in_bios)
+		{
+			config::DMG_PAL_BG[0] = background_colors_final[0][0];
+			config::DMG_PAL_BG[1] = background_colors_final[1][0];
+			config::DMG_PAL_BG[2] = background_colors_final[2][0];
+			config::DMG_PAL_BG[3] = background_colors_final[3][0];
+		}
+
 		mem_link->gpu_update_bg_colors = false;
 	}
 
@@ -1004,6 +1013,20 @@ void GPU::step(int cpu_clock)
 
 		sprite_colors_final[color][palette] = 0xFF000000 | (red << 16) | (green << 8) | (blue);
 		mem_link->sprite_colors_raw[color][palette] = sprite_colors_raw[color][palette];
+
+		//Update DMG OBJ palettes when using GBC BIOS
+		if(mem_link->in_bios)
+		{
+			config::DMG_PAL_OBJ[0][0] = sprite_colors_final[0][0];
+			config::DMG_PAL_OBJ[1][0] = sprite_colors_final[1][0];
+			config::DMG_PAL_OBJ[2][0] = sprite_colors_final[2][0];
+			config::DMG_PAL_OBJ[3][0] = sprite_colors_final[3][0];
+
+			config::DMG_PAL_OBJ[0][1] = sprite_colors_final[0][1];
+			config::DMG_PAL_OBJ[1][1] = sprite_colors_final[1][1];
+			config::DMG_PAL_OBJ[2][1] = sprite_colors_final[2][1];
+			config::DMG_PAL_OBJ[3][1] = sprite_colors_final[3][1];
+		}
 
 		mem_link->gpu_update_sprite_colors = false;
 	}

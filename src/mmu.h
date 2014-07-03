@@ -27,7 +27,7 @@ class MMU
 		
 	//Default Memory Map - 64KB
 	u8 memory_map[0x10000];
-	u8 bios [0x100];
+	u8 bios [0x900];
 
 	//Memory Banks
 	std::vector< std::vector<u8> > read_only_bank;
@@ -52,6 +52,8 @@ class MMU
 	GamePad pad;
 
 	bool in_bios;
+	u8 bios_type;
+	u32 bios_size;
 
 	MMU();
 	~MMU();

@@ -41,6 +41,8 @@ namespace config
 	extern u32 mouse_x;
 	extern u32 mouse_y;
 	extern u8 gb_type;
+	extern u32 DMG_PAL_BG[4];
+	extern u32 DMG_PAL_OBJ[4][2];
 }
 
 #endif // GB_CONFIG

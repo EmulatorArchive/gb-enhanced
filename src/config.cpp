@@ -54,6 +54,10 @@ namespace config
 
 	//Emulated GB system
 	u8 gb_type = 0;
+
+	//Default DMG 'color' palette
+	u32 DMG_PAL_BG[4];
+	u32 DMG_PAL_OBJ[4][2];
 }
 
 /****** Parse arguments passed from the command-line ******/
@@ -151,6 +155,12 @@ bool parse_cli_args()
 /****** Parse config file for values ******/
 bool parse_config_file()
 {
+	//Set up the default DMG palette now.
+	config::DMG_PAL_BG[0] = config::DMG_PAL_OBJ[0][0] = config::DMG_PAL_OBJ[0][1] = 0xFFFFFFFF;
+	config::DMG_PAL_BG[1] = config::DMG_PAL_OBJ[1][0] = config::DMG_PAL_OBJ[1][1] = 0xFFC0C0C0;
+	config::DMG_PAL_BG[2] = config::DMG_PAL_OBJ[2][0] = config::DMG_PAL_OBJ[2][1] = 0xFF606060;
+	config::DMG_PAL_BG[3] = config::DMG_PAL_OBJ[3][0] = config::DMG_PAL_OBJ[3][1] = 0xFF000000;
+
 	std::ifstream file("gbe.ini", std::ios::in); 
 	std::string input_line = "";
 	std::string line_char = "";
