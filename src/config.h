@@ -43,6 +43,8 @@ namespace config
 	extern u8 gb_type;
 	extern u8 custom_sprite_scale;
 	extern u8 custom_sprite_type;
+	extern u32 DMG_PAL_BG[4];
+	extern u32 DMG_PAL_OBJ[4][2];
 }
 
 #endif // GB_CONFIG

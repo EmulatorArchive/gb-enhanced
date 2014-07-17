@@ -19,7 +19,9 @@
 /****** MMU Constructor ******/
 MMU::MMU() 
 { 
-	in_bios = false; 
+	in_bios = false;
+	bios_type = 1;
+	bios_size = 0x100;
 
 	gpu_update_bg_tile = false;
 	gpu_update_sprite = false;
@@ -75,8 +77,21 @@ u8 MMU::read_byte(u16 address)
 	//Read from BIOS
 	if(in_bios)
 	{
-		if(address < 0x100) { return bios[address]; }
-		else if(address == 0x100) { in_bios = false; std::cout<<"MMU : Exiting BIOS \n"; }
+		//GBC BIOS reads from 0x00 to 0xFF and 0x200 to 0x900
+		//0x100 - 0x1FF is reserved for the Nintendo logo + checksum + first lines of game code
+		//For the latter, just read from the cartridge ROM
+		if((bios_size == 0x900) && (address > 0x100) && (address < 0x200)) { return memory_map[address]; }
+		
+		else if(address == 0x100) 
+		{ 
+			in_bios = false; 
+			std::cout<<"MMU : Exiting BIOS \n";
+
+			//For DMG on GBC games, we switch back to DMG Mode (we just take the colors the BIOS gives us)
+			if((bios_size == 0x900) && (memory_map[ROM_COLOR] == 0)) { config::gb_type = 1; }
+		}
+
+		else if(address < bios_size) { return bios[address]; }
 	}
 
 	//Read using ROM Banking
@@ -162,16 +177,7 @@ u8 MMU::read_byte(u16 address)
 
 /****** Read signed byte from memory ******/
 s8 MMU::read_signed_byte(u16 address) 
-{ 
-	//Read from BIOS
-	if((in_bios) && (address < 0x100))
-	{
-		u8 temp = bios[address];
-		s8 s_temp = (s8)temp;
-		return s_temp;
-	}
-
-	//Read normally
+{
 	u8 temp = read_byte(address);
 	s8 s_temp = (s8)temp;
 	return s_temp;
@@ -180,15 +186,6 @@ s8 MMU::read_signed_byte(u16 address)
 /****** Read word from memory ******/
 u16 MMU::read_word(u16 address) 
 {
-	//Read from BIOS
-	if((in_bios) && (address < 0x100))
-	{
-		u16 val = bios[address+1];
-		val = (val << 8) | bios[address];
-		return val;
-	}
-
-	//Read normally
 	u16 val = read_byte(address+1);
 	val = (val << 8) | read_byte(address);
 	return val;
@@ -673,9 +670,13 @@ bool MMU::read_file(std::string filename)
 	//Determine if cart is DMG or GBC and which system GBE will try to emulate
 	//Only necessary for Auto system detection.
 	//For now, even if forcing GBC, when encountering DMG carts, revert to DMG mode, dunno how the palettes work yet
-	if(memory_map[ROM_COLOR] == 0) { config::gb_type = 1; }
-	else if((memory_map[ROM_COLOR] == 0x80) && (config::gb_type == 0)) { config::gb_type = 2; }
-	else if((memory_map[ROM_COLOR] == 0xC0) && (config::gb_type == 0)) { config::gb_type = 2; }
+	//When using the DMG bootrom or GBC BIOS, those files determine emulated system type
+	if(!in_bios)
+	{
+		if(memory_map[ROM_COLOR] == 0) { config::gb_type = 1; }
+		else if((memory_map[ROM_COLOR] == 0x80) && (config::gb_type == 0)) { config::gb_type = 2; }
+		else if((memory_map[ROM_COLOR] == 0xC0) && (config::gb_type == 0)) { config::gb_type = 2; }
+	}
 
 	return true;
 }
@@ -691,13 +692,32 @@ bool MMU::read_bios(std::string filename)
 		return false; 
 	}
 
-	//Read 256B BIOS
-	file.read((char*)bios, 0x100);
-	file.close();
+	//Get BIOS file size
+	file.seekg(0, file.end);
+	bios_size = file.tellg();
+	file.seekg(0, file.beg);
 
-	std::cout<<"MMU : bios.bin loaded successfully. \n";
+	//Check the file size before reading
+	if((bios_size == 0x100) || (bios_size == 0x900))
+	{
+		//Read BIOS data from file
+		file.read((char*)bios, bios_size);
+		file.close();
 
-	return true;
+		//When using the BIOS, set the emulated system type - DMG or GBC respectively
+		if(bios_size == 0x100) { config::gb_type = 1; }
+		else if(bios_size == 0x900) { config::gb_type = 2; }
+
+		std::cout<<"MMU : bios.bin loaded successfully. \n";
+
+		return true;
+	}
+
+	else
+	{
+		std::cout<<"MMU : bios.bin has an incorrect file size : (" << bios_size << " bytes) \n";
+		return false;
+	}	
 }
 
 /****** Save battery-backed RAM to file ******/
