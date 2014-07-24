@@ -52,7 +52,7 @@ void GPU::load_image_data(int size, SDL_Surface* custom_source, u32 custom_dest[
 	if(SDL_MUSTLOCK(custom_source)){ SDL_UnlockSurface(custom_source); }
 }
 
-/****** Dumps sprites to files ******/
+/****** Dumps sprites to files  ******/
 void GPU::dump_sprites()
 {
 	SDL_Surface* custom_sprite = NULL;
@@ -648,3 +648,192 @@ void GPU::load_bg_tileset_0()
 	//Clear tileset updates
 	tile_set_0_updates.clear();
 }
+
+/****** Dumps GBC sprites to files  ******/
+void GPU::dump_gbc_sprites()
+{
+	SDL_Surface* custom_sprite = NULL;
+	u8 sprite_height = 0;
+	u8 old_vram_bank = mem_link->vram_bank;
+
+	std::string hue_data;
+
+	//Determine if in 8x8 or 8x16 mode
+	if(mem_link->memory_map[REG_LCDC] & 0x04) { sprite_height = 16; }
+	else { sprite_height = 8; }
+
+	//Read sprite pixel data
+	for(int x = 0; x < 40; x++)
+	{
+		u16 sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+		u8 pal = (sprites[x].options & 0x7);
+
+		sprites[x].hash = "";
+		hue_data = "";
+		bool add_sprite_hash = true;
+
+		//Create a hash for each sprite
+		for(int a = 0; a < sprite_height/2; a++)
+		{
+			//Read data from correct VRAM bank
+			mem_link->vram_bank = (sprites[x].options & 0x8) ? 1 : 0;
+
+			u16 temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr);
+			temp_hash << 8;
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 1);
+			sprites[x].hash += raw_to_64(temp_hash);
+
+			temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr + 2);
+			temp_hash << 8;
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 3);
+			sprites[x].hash += raw_to_64(temp_hash);
+		}
+
+		//Update the sprite hash list
+		for(int a = 0; a < sprite_hash_list.size(); a++)
+		{
+			if(sprites[x].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+		}
+
+		//For new sprites, dump BMP file
+		if(add_sprite_hash) 
+		{ 
+			sprite_hash_list.push_back(sprites[x].hash);
+
+			//Prepend the Hue data to the hash
+			for(int a = 0; a < 4; a++)
+			{
+				hue_data += hash::base_64_index[(sprite_hues[a][pal]/10)];
+			}
+
+			sprites[x].hash = hue_data + "_" + sprites[x].hash;
+
+			custom_sprite = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, sprite_height, 32, 0, 0, 0, 0);
+			std::string dump_file = "Dump/Sprites/" + sprites[x].hash + ".bmp";
+
+			if(SDL_MUSTLOCK(custom_sprite)){ SDL_LockSurface(custom_sprite); }
+
+			u32* dump_pixel_data = (u32*)custom_sprite->pixels;
+
+			bool solid_color = true;
+
+			//Generate RGBA values of the sprite for the dump file
+			for(int a = 0; a < (8 * sprite_height); a++)
+			{
+				dump_pixel_data[a] = sprite_colors_final[sprites[x].raw_data[a]][pal];
+
+				if(dump_pixel_data[a] != dump_pixel_data[0]) { solid_color = false; }
+			}
+
+			//Reverse any flipping to get the original sprite's orentation
+			if(sprites[x].options & 0x20) { horizontal_flip(8, sprite_height, dump_pixel_data); }
+			if(sprites[x].options & 0x40) { vertical_flip(8, sprite_height, dump_pixel_data); }
+
+			if(SDL_MUSTLOCK(custom_sprite)){ SDL_UnlockSurface(custom_sprite); }
+
+			//If the dumped sprites are one solid color, it is usually safe to ignore it completely
+			//Only dump the sprites here if it is not a solid color
+			if(!solid_color)
+			{
+				//Save to BMP
+				std::cout<<"GPU : Saving Sprite - " << dump_file << "\n";
+				SDL_SaveBMP(custom_sprite, dump_file.c_str());
+			}
+		}
+	}
+
+	mem_link->vram_bank = old_vram_bank;
+}
+
+/****** Updates the Hue-Value pair for a GBC palette ******/
+void GPU::update_hues_values(u8 palette_number, bool background_palette)
+{
+	//Cycle through all 4 colors of the palette
+	for(int x = 0; x < 4; x++)
+	{
+		u8 max = rgb_max(background_colors_final[x][palette_number]);
+		u8 min = rgb_min(background_colors_final[x][palette_number]);
+
+		//Set the Value (brightness more or less)
+		bg_values[x][palette_number] = max;
+
+		//Calculate the Hue
+		double color_delta = max - min;
+		u8 r = (background_colors_final[x][palette_number] >> 16);
+		u8 b = (background_colors_final[x][palette_number] >> 8);
+		u8 g = background_colors_final[x][palette_number];
+		double pre_hue = 0.0;
+		u16 hue = 0;
+
+		if(color_delta == 0)
+		{
+			//Assign a color delta of 0 to 0 degrees as the hue
+			//If all the RGB components are the same, color is a pure shade of gray (black, white, somewhere in between)
+			hue = 0;
+		}
+				
+		else if(max == r)
+		{
+			pre_hue = (g - b)/color_delta;
+			if(pre_hue < 0) { pre_hue *= -1; hue = pre_hue * 60; }
+			else { hue = pre_hue * 60; hue = (360 - hue); }
+		}
+
+		else if(max == g)
+		{
+			pre_hue = ((b - r)/color_delta) + 2;
+			if(pre_hue < 0) { pre_hue *= -1; hue = pre_hue * 60; }
+			else { hue = pre_hue * 60; hue = (360 - hue); }
+		}
+
+		else
+		{
+			pre_hue = ((r - g)/color_delta) + 4;
+			if(pre_hue < 0) { pre_hue *= -1; hue = pre_hue * 60; }
+			else { hue = pre_hue * 60; hue = (360 - hue); }
+		}
+
+		//Update the background Hue-Values
+		if(background_palette)
+		{
+			bg_values[x][palette_number] = max;
+			bg_hues[x][palette_number] = hue;
+		}
+
+		//Update the sprite Hue-Values
+		else
+		{
+			sprite_values[x][palette_number] = max;
+			sprite_hues[x][palette_number] = hue;
+		}
+	}	
+}
+
+/****** Returns the minimum RGB component ******/
+u8 GPU::rgb_min(u32 color)
+{
+	u8 r = (color >> 16);
+	u8 g = (color >> 8);
+	u8 b = color;
+
+	u8 min = r < g ? r : g;
+	min = min < b ? min : b;
+
+	return min;
+}
+
+/****** Returns the maximum RGB component ******/
+u8 GPU::rgb_max(u32 color)	
+{
+	u8 r = (color >> 16);
+	u8 g = (color >> 8);
+	u8 b = color;
+
+	u8 max = r > g ? r : g;
+	max = max > b ? max : b;
+
+	return max;
+}
+
+
+

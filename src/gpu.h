@@ -144,6 +144,12 @@ class GPU
 	void load_bg_tileset_1();
 	void load_bg_tileset_0();
 
+	void dump_gbc_sprites();
+
+	void update_hues_values(u8 palette_number, bool background_palette);
+	u8 rgb_min(u32 color);
+	u8 rgb_max(u32 color);
+
 	void load_image_data(int size, SDL_Surface* custom_source, u32 custom_dest[]);
 
 	u32 dump_mode;
@@ -151,6 +157,13 @@ class GPU
 	u32 dump_tile_0;
 	u32 dump_tile_1;
 	u32 dump_tile_win;
+
+	//Hue-Value pairs for GBC color palettes
+	//Used for fancy color manipulation logic required for GBC HD graphics
+	u16 bg_values[4][8];
+	u16 bg_hues[4][8];
+	u16 sprite_values[4][8];
+	u16 sprite_hues[4][8];
 
 	u8 last_bgp;
 

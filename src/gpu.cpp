@@ -229,7 +229,8 @@ void GPU::update_bg_tile()
 
 		//When a new background palette is used, update the tile checklist to include all tiles
 		//Don't repeat once a new background palette has been established!
-		if((mem_link->gpu_update_addr[x] == REG_BGP) && (last_bgp != mem_link->memory_map[REG_BGP]))
+		//Only used here for DMG
+		if((mem_link->gpu_update_addr[x] == REG_BGP) && (last_bgp != mem_link->memory_map[REG_BGP]) && (config::dump_sprites) && (config::gb_type == 1))
 		{
 			tile_set_0_updates.clear();
 			tile_set_1_updates.clear();
@@ -858,7 +859,7 @@ void GPU::generate_scanline()
 							}
 						} 
 
-						//Output Scanline data to RGBA - DMG Mode
+						//Output Scanline data to RGBA - GBC Mode
 						if(config::gb_type == 2)
 						{
 							if((bg_priority[current_pixel] == 0) && (priority == 0) && (sprites[current_sprite].raw_data[y] != 0)) { draw_sprite_pixel = true; }
@@ -1034,7 +1035,7 @@ void GPU::render_screen()
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
 	}
 
-	//Use HD custom pixel data buffer
+	//... Or use HD custom pixel data buffer ...
 	else if((config::custom_sprite_scale > 1) && (config::load_sprites))
 	{
 		if(SDL_MUSTLOCK(temp_screen)){ SDL_LockSurface(temp_screen); }
@@ -1051,7 +1052,7 @@ void GPU::render_screen()
 		SDL_BlitSurface(temp_screen, 0, gpu_screen, 0);
 	}	
 	
-	//Or just blit to unscaled image to screen
+	//... Or just blit to unscaled image to screen
 	else { SDL_BlitSurface(src_screen, 0, gpu_screen, 0); }
 
 	//Blit via SDL
@@ -1156,6 +1157,7 @@ void GPU::step(int cpu_clock)
 			config::DMG_PAL_BG[3] = background_colors_final[3][0];
 		}
 
+		update_hues_values(palette, true);
 		mem_link->gpu_update_bg_colors = false;
 	}
 
@@ -1217,6 +1219,7 @@ void GPU::step(int cpu_clock)
 			config::DMG_PAL_OBJ[3][1] = sprite_colors_final[3][1];
 		}
 
+		update_hues_values(palette, false);
 		mem_link->gpu_update_sprite_colors = false;
 	}
 
@@ -1342,12 +1345,18 @@ void GPU::step(int cpu_clock)
 
 					//Dump sprites and BG Tiles every VBlank
 					if(config::dump_sprites) 
-					{ 
-						dump_sprites();
-						if((config::mouse_click) && (dump_tile_0 < 0x100) && (dump_mode == 0)) { dump_bg_tileset_0(); }
-						else if((config::mouse_click) && (dump_tile_1 < 0x100) && (dump_mode == 1)) { dump_bg_tileset_1(); }
-						else if((config::mouse_click) && (dump_tile_win < 0x100)) { dump_bg_window(); }
-						config::mouse_click = false; 
+					{
+						if(config::gb_type == 1) 
+						{ 
+							dump_sprites(); 
+
+							if((config::mouse_click) && (dump_tile_0 < 0x100) && (dump_mode == 0)) { dump_bg_tileset_0(); }
+							else if((config::mouse_click) && (dump_tile_1 < 0x100) && (dump_mode == 1)) { dump_bg_tileset_1(); }
+							else if((config::mouse_click) && (dump_tile_win < 0x100)) { dump_bg_window(); }
+							config::mouse_click = false; 
+						}
+						
+						else if(config::gb_type == 2) { dump_gbc_sprites(); }
 					}
 
 					//Load custom BG tiles every VBlank
