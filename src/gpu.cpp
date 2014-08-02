@@ -77,6 +77,9 @@ GPU::GPU()
 		glGenTextures(1, &gpu_texture);
 		glBindTexture(GL_TEXTURE_2D, gpu_texture);
 	}
+
+	if(config::load_sprites) { load_manifest(); }
+
 }
 
 /****** GPU Deconstructor ******/
@@ -391,7 +394,7 @@ void GPU::generate_scanline()
 				bg_win_raw_data[current_pixel] = tile_pixel;
 
 				//Load custom background tile data for Tile Set 1
-				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded)) 
+				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded) && (config::gb_type == 1)) 
 				{
 					//Render 1:1
 					if(config::custom_sprite_scale == 1)
@@ -419,7 +422,7 @@ void GPU::generate_scanline()
 				}
 
 				//Load custom background tile data for Tile Set 0
-				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded))
+				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded) && (config::gb_type == 1))
 				{
 					//Render 1:1
 					if(config::custom_sprite_scale == 1)
@@ -587,7 +590,7 @@ void GPU::generate_scanline()
 				bg_win_raw_data[current_pixel] = tile_pixel;
 
 				//Load custom background tile data for Tile Set 1
-				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded)) 
+				if((config::load_sprites) && (mem_link->memory_map[REG_LCDC] & 0x10) && (tile_set_1[map_entry].custom_data_loaded) && (config::gb_type == 1)) 
 				{
 					//Render 1:1
 					if(config::custom_sprite_scale == 1)
@@ -615,7 +618,7 @@ void GPU::generate_scanline()
 				}
 
 				//Load custom background tile data for Tile Set 0
-				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded))
+				else if((config::load_sprites) && ((mem_link->memory_map[REG_LCDC] & 0x10) == 0) && (tile_set_0[map_entry].custom_data_loaded) && (config::gb_type == 1))
 				{
 					//Render 1:1
 					if(config::custom_sprite_scale == 1)
@@ -784,6 +787,10 @@ void GPU::generate_scanline()
 						if((config::custom_sprite_scale == 1) && (sprites[current_sprite].custom_data[y] != config::custom_sprite_transparency))
 						{
 							scanline_pixel_data[current_pixel] = sprites[current_sprite].custom_data[y];
+							if(config::gb_type == 2) 
+							{
+								scanline_pixel_data[current_pixel] = adjust_pixel_brightness(current_sprite, scanline_pixel_data[current_pixel]);
+							}
 						}
 
 						//Render HD
@@ -931,7 +938,11 @@ void GPU::generate_sprites()
 	obp[3][1] = (sp_one >> 6) & 0x3;
 
 	//Load custom sprite data
-	if(config::load_sprites) { load_sprites(); }
+	if(config::load_sprites) 
+	{ 
+		if(config::gb_type == 1) { load_sprites(); }
+		else if(config::gb_type == 2) { load_gbc_sprites(); }
+	}
 
 	//Read sprite pixel data normally	
 	for(int x = 0; x < 40; x++)
@@ -1095,13 +1106,6 @@ void GPU::step(int cpu_clock)
 		if(config::gb_type != 2) { update_bg_tile(); }
 		else { update_gbc_bg_tile(); }
 		mem_link->gpu_update_bg_tile = false;
-	}
-
-	//Update sprites
-	if(mem_link->gpu_update_sprite)
-	{
-		generate_sprites();
-		mem_link->gpu_update_sprite = false;
 	}
 
 	//Update background color palettes on the GBC
@@ -1298,6 +1302,13 @@ void GPU::step(int cpu_clock)
 						else { line_transfer_count--; mem_link->memory_map[REG_HDMA5] = line_transfer_count; }
 					}
 
+					//Update sprites
+					if(mem_link->gpu_update_sprite)
+					{
+						generate_sprites();
+						mem_link->gpu_update_sprite = false;
+					}
+
 					generate_scanline();
 					gpu_mode_change = 0;
 					
@@ -1360,11 +1371,11 @@ void GPU::step(int cpu_clock)
 					}
 
 					//Load custom BG tiles every VBlank
-					if(config::load_sprites)
+					if((config::load_sprites) && (config::gb_type == 1))
 					{
 						load_bg_tileset_1();
 						load_bg_tileset_0();
-					} 
+					}
 				}
 
 				if(gpu_clock >= 456)

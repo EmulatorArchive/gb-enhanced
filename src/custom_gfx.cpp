@@ -8,8 +8,32 @@
 //
 // Handles dumping original BG and Sprite tiles or loading custom pixel data
 
+#include <sstream>
+
 #include "gpu.h"
 #include "SDL/SDL_image.h"
+
+/****** Loads custom graphics manifest file ******/
+void GPU::load_manifest()
+{
+	std::ifstream file("Load/manifest.txt", std::ios::in);
+	std::string input_line = "";
+
+	if(!file.is_open())
+	{
+		std::cout<<"Error : Could not open manifest.txt. Custom graphics will not load. \n"; 
+	}
+
+	else
+	{
+		manifest.clear();
+
+		while(getline(file, input_line))
+		{
+			manifest.push_back(input_line);
+		}
+	}
+}
 
 /****** Takes 24-bit data from loaded image and converts it to 32-bit ARGB ******/
 void GPU::load_image_data(int size, SDL_Surface* custom_source, u32 custom_dest[])
@@ -333,12 +357,7 @@ void GPU::dump_bg_window()
 /****** Loads sprites from files ******/
 void GPU::load_sprites()
 {
-	u8 high_byte, low_byte = 0;
-	u8 high_bit, low_bit = 0;
-	u8 final_byte = 0;
-
 	u8 sprite_height = 0;
-
 	SDL_Surface* custom_sprite = NULL;
 
 	//Determine if in 8x8 or 8x16 mode
@@ -689,6 +708,15 @@ void GPU::dump_gbc_sprites()
 			sprites[x].hash += raw_to_64(temp_hash);
 		}
 
+		//Prepend the Hue data to the hash
+		for(int a = 0; a < 4; a++)
+		{
+			hue_data += hash::base_64_index[(sprite_hues[a][pal]/10)];
+		}
+
+		sprites[x].hash = hue_data + "_" + sprites[x].hash;
+
+
 		//Update the sprite hash list
 		for(int a = 0; a < sprite_hash_list.size(); a++)
 		{
@@ -700,16 +728,8 @@ void GPU::dump_gbc_sprites()
 		{ 
 			sprite_hash_list.push_back(sprites[x].hash);
 
-			//Prepend the Hue data to the hash
-			for(int a = 0; a < 4; a++)
-			{
-				hue_data += hash::base_64_index[(sprite_hues[a][pal]/10)];
-			}
-
-			sprites[x].hash = hue_data + "_" + sprites[x].hash;
-
 			custom_sprite = SDL_CreateRGBSurface(SDL_SWSURFACE, 8, sprite_height, 32, 0, 0, 0, 0);
-			std::string dump_file = "Dump/Sprites/" + sprites[x].hash + ".bmp";
+			std::string dump_file = "Dump/Sprites/" + sprites[x].hash + "_" + hash::base_64_index[pal] + ".bmp";
 
 			if(SDL_MUSTLOCK(custom_sprite)){ SDL_LockSurface(custom_sprite); }
 
@@ -743,6 +763,200 @@ void GPU::dump_gbc_sprites()
 	}
 
 	mem_link->vram_bank = old_vram_bank;
+}
+
+/****** Loads sprites from files ******/
+void GPU::load_gbc_sprites()
+{
+	SDL_Surface* custom_sprite = NULL;
+	u8 sprite_height = 0;
+	u8 old_vram_bank = mem_link->vram_bank;
+
+	std::string hue_data;
+
+	//Determine if in 8x8 or 8x16 mode
+	if(mem_link->memory_map[REG_LCDC] & 0x04) { sprite_height = 16; }
+	else { sprite_height = 8; }
+
+	//Read sprite pixel data
+	for(int x = 0; x < 40; x++)
+	{
+		u16 sprite_tile_addr = (sprites[x].tile_number * 16) + 0x8000;
+		u8 pal = (sprites[x].options & 0x7);
+
+		sprites[x].hash = "";
+		hue_data = "";
+		bool add_sprite_hash = true;
+		bool hash_in_manifest = false;
+
+		//Create a hash for each sprite
+		for(int a = 0; a < sprite_height/2; a++)
+		{
+			//Read data from correct VRAM bank
+			mem_link->vram_bank = (sprites[x].options & 0x8) ? 1 : 0;
+		
+			u16 temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr);
+			temp_hash << 8;
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 1);
+			sprites[x].hash += raw_to_64(temp_hash);
+
+			temp_hash = mem_link->read_byte((a * 4) + sprite_tile_addr + 2);
+			temp_hash << 8;
+			temp_hash += mem_link->read_byte((a * 4) + sprite_tile_addr + 3);
+			sprites[x].hash += raw_to_64(temp_hash);
+		}
+
+		//Prepend the Hue data to the hash
+		for(int a = 0; a < 4; a++)
+		{
+			hue_data += hash::base_64_index[(sprite_hues[a][pal]/10)];
+		}
+
+		sprites[x].hash = hue_data + "_" + sprites[x].hash;
+
+		//Search for already loaded custom sprite data
+		custom_sprite_list_itr = custom_sprite_list.find(sprites[x].hash);
+
+		//Check to see if hash exists already
+		for(int a = 0; a < sprite_hash_list.size(); a++)
+		{
+			if(sprites[x].hash == sprite_hash_list[a]) { add_sprite_hash = false; }
+		}
+
+		//If hash does not exist add it to the list, try to read custom sprite data and update map
+		if(add_sprite_hash) 
+		{
+			sprite_hash_list.push_back(sprites[x].hash);
+			std::string search_string = "";
+			std::string pal_data = "";
+
+			//Check to see if hash is on the manifest
+			for(int a = 0; a < manifest.size(); a++)
+			{
+				search_string = manifest[a];
+				pal_data = manifest[a];
+				search_string.erase(search_string.end()-6, search_string.end());
+
+				if(sprites[x].hash == search_string) 
+				{ 
+					hash_in_manifest = true; 
+					pal_data = pal_data.substr(pal_data.size()-5, 1);
+					search_string = manifest[a];
+					break;
+				}
+			}
+
+			//If hash exists in manifest, attempt to load it
+			if(hash_in_manifest)
+			{
+				std::string load_file = "";
+				if(config::custom_sprite_type == 0) 
+				{
+					load_file = "Load/Sprites/" + search_string;
+					custom_sprite = SDL_LoadBMP(load_file.c_str()); 
+				}
+
+				else 
+				{
+					load_file = "Load/Sprites/" + search_string;
+					custom_sprite = IMG_Load(load_file.c_str());
+				} 
+
+				//Load custom sprite data into map and custom data
+				if(custom_sprite != NULL) 
+				{ 
+					custom_sprite_list[sprites[x].hash] = custom_sprite;
+					std::stringstream pal_string(pal_data);
+					int pal_int = 0;
+					pal_string >> pal_int;			
+					custom_sprite_brightness[sprites[x].hash] = pal_int;
+
+					std::cout<<"GPU : Loading custom sprite - " << load_file << "\n";
+
+					//Account for sizes, e.g. 1:1 original, 2:1 original, 3:1 original, etc.
+					u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
+					sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
+					sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
+
+					//Verify sizes
+					if((sprites[x].custom_width != (8 * config::custom_sprite_scale)) || (sprites[x].custom_height != (sprite_height * config::custom_sprite_scale)))
+					{
+						std::cout<<"GPU : Custom sprite - " << load_file << " was the wrong size! This will cause issues.\n";
+					}
+
+					if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
+				
+					load_image_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
+
+					sprites[x].custom_data_loaded = true;
+				}	
+
+				else { sprites[x].custom_data_loaded = false; }
+			}
+		}
+
+		//If hash already exists in the list, try to read custom sprite data from the map
+		else if((!add_sprite_hash) && (custom_sprite_list_itr != custom_sprite_list.end()))
+		{	
+			u32 size = (custom_sprite_list[sprites[x].hash]->w * custom_sprite_list[sprites[x].hash]->h);
+			sprites[x].custom_width = custom_sprite_list[sprites[x].hash]->w;
+			sprites[x].custom_height = custom_sprite_list[sprites[x].hash]->h;
+
+			if(sprites[x].custom_data.size() != size) { sprites[x].custom_data.resize(size, 0); }
+
+			load_image_data(size, custom_sprite_list[sprites[x].hash], &sprites[x].custom_data[0]);
+
+			sprites[x].custom_data_loaded = true;
+		}
+
+		else { sprites[x].custom_data_loaded = false; }
+	}
+
+	mem_link->vram_bank = old_vram_bank;
+}
+
+/****** Adjusts pixel brightness according to GBC palette ******/
+u32 GPU::adjust_pixel_brightness(u8 sprite_id, u32 color)
+{
+	//Compare average palette brightness with input brightness
+	u8 input_brightness = rgb_max(color);
+	u8 palette_number = custom_sprite_brightness[sprites[sprite_id].hash];
+	u16 palette_brightness = ((sprite_values[0][palette_number] + sprite_values[1][palette_number] + sprite_values[2][palette_number] + sprite_values[3][palette_number]) >> 2);
+	double factor = 0.0;
+	u32 final_color = 0;
+
+	u8 r = (color >> 16);
+	u8 g = (color >> 8);
+	u8 b = color;
+
+	//If average palette brightness is lower, subtract to darken the image
+	if(palette_brightness < input_brightness)
+	{
+		factor = 1 + ((palette_brightness - input_brightness)/255.0);
+
+		if((r * factor) > 255) { r = 255; }
+		else { r *= factor; }
+
+		if((g * factor) > 255) { g = 255; }
+		else { g *= factor; }
+
+		if((b * factor) > 255) { b = 255; }
+		else { b *= factor; }
+	}
+
+	//If average palette brightness is higher, add to brighten image
+	else if(palette_brightness > input_brightness)
+	{
+		factor = ((input_brightness - palette_brightness)/255.0);
+
+		r *= factor;
+		g *= factor;
+		b *= factor;
+	}
+
+	//Form final color
+	final_color = 0xFF000000 | (r << 16) | (g << 8) | (b);
+	return final_color;
 }
 
 /****** Updates the Hue-Value pair for a GBC palette ******/

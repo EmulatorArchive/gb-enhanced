@@ -117,10 +117,12 @@ class GPU
 
 	//Sprite Hash Data
 	std::vector<std::string> sprite_hash_list;
+	std::vector<std::string> manifest;
 	std::vector<u8> tile_set_0_updates;
 	std::vector<u8> tile_set_1_updates;
 	std::map<std::string, SDL_Surface*> custom_sprite_list;
 	std::map<std::string, SDL_Surface*>::iterator custom_sprite_list_itr;
+	std::map<std::string, int> custom_sprite_brightness;
 
 	void render_screen();
 	void scanline_compare();
@@ -146,10 +148,14 @@ class GPU
 
 	void dump_gbc_sprites();
 
+	void load_gbc_sprites();
+
 	void update_hues_values(u8 palette_number, bool background_palette);
 	u8 rgb_min(u32 color);
 	u8 rgb_max(u32 color);
+	u32 adjust_pixel_brightness(u8 sprite_id, u32 color);
 
+	void load_manifest();
 	void load_image_data(int size, SDL_Surface* custom_source, u32 custom_dest[]);
 
 	u32 dump_mode;
